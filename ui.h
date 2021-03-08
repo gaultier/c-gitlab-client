@@ -35,14 +35,23 @@ static void ui_print_in_middle(WINDOW* win, int starty, int startx, int width,
 }
 
 static void ui_draw() {
+  u64 pipeline_count = 0;
+  for (u64 i = 0; i < buf_size(projects); i++) {
+    const project_t* const project = &projects[i];
+
+    for (u64 j = 0; j < buf_size(project->pro_pipelines); j++) {
+      pipeline_count++;
+    }
+  }
+  items = calloc(pipeline_count, sizeof(void*));
+  u64 k = 0;
   for (u64 i = 0; i < buf_size(projects); i++) {
     const project_t* const project = &projects[i];
 
     for (u64 j = 0; j < buf_size(project->pro_pipelines); j++) {
       const pipeline_t* const pipeline = &project->pro_pipelines[j];
-      ITEM* item = new_item(sdscatprintf(sdsempty(), "%lld", pipeline->pip_id),
+      items[k++] = new_item(sdscatprintf(sdsempty(), "%lld", pipeline->pip_id),
                             pipeline->pip_status);
-      buf_push(items, item);
     }
   }
 
@@ -69,9 +78,11 @@ static void ui_draw() {
     switch (c) {
       case KEY_DOWN:
         menu_driver(menu, REQ_DOWN_ITEM);
+        menu_driver(menu, REQ_SCR_ULINE);
         break;
       case KEY_UP:
         menu_driver(menu, REQ_UP_ITEM);
+        menu_driver(menu, REQ_SCR_DLINE);
         break;
     }
     wrefresh(window);
