@@ -1,16 +1,5 @@
 #pragma once
-#include <curl/curl.h>
-#include <errno.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
-#include "deps/buf/buf.h"
-#include "deps/jsmn/jsmn.h"
-#include "deps/sds/sds.c"
-#include "deps/sds/sds.h"
-#include "deps/sds/sdsalloc.h"
+#include "common.h"
 
 jsmntok_t *json_tokens;
 
@@ -23,28 +12,7 @@ static int json_eq(const char *json, const jsmntok_t *tok, const char *s,
   return -1;
 }
 
-typedef struct {
-  i64 pip_id;
-  sds pip_vcs_ref, pip_url, pip_created_at, pip_updated_at, pip_status;
-} pipeline_t;
-
-typedef struct {
-  i64 pro_id;
-  sds pro_name, pro_path_with_namespace, pro_api_url, pro_api_data,
-      pro_api_pipelines_url;
-  pipeline_t *pro_pipelines;
-} project_t;
-
 project_t *projects = NULL;
-
-static void project_init(project_t *project, i64 id) {
-  project->pro_id = id;
-  project->pro_api_url =
-      sdscatprintf(sdsempty(), "https://gitlab.com/api/v4/projects/%lld", id);
-  project->pro_api_data = sdsempty();
-  project->pro_api_pipelines_url = sdscatprintf(
-      sdsempty(), "https://gitlab.com/api/v4/projects/%lld/pipelines", id);
-}
 
 static void project_parse_json(project_t *project) {
   buf_clear(json_tokens);
@@ -173,7 +141,7 @@ static void project_pipelines_fetch_queue(CURLM *cm, int i) {
   curl_multi_add_handle(cm, eh);
 }
 
-static void projects_fetch(CURLM *cm) {
+static void api_fetch(CURLM *cm) {
   int still_alive = 1;
   int msgs_left = -1;
   do {
@@ -199,4 +167,53 @@ static void projects_fetch(CURLM *cm) {
     if (still_alive) curl_multi_wait(cm, NULL, 0, 1000, NULL);
 
   } while (still_alive);
+}
+
+static void projects_fetch(i64 *project_ids) {
+  CURLM *cm = curl_multi_init();
+
+  for (u64 i = 0; i < buf_size(project_ids); i++) {
+    const i64 id = project_ids[i];
+
+    project_t project = {0};
+    project_init(&project, id);
+    buf_push(projects, project);
+    project_fetch_queue(cm, i);
+  }
+  api_fetch(cm);
+  curl_multi_cleanup(cm);
+
+  for (u64 i = 0; i < buf_size(project_ids); i++) {
+    project_t *project = &projects[i];
+    project_parse_json(project);
+    printf("Project: id=%lld path_with_namespace=%s name=%s\n", project->pro_id,
+           project->pro_path_with_namespace, project->pro_name);
+  }
+}
+
+static void pipelines_fetch() {
+  CURLM *cm = curl_multi_init();
+
+  for (u64 i = 0; i < buf_size(projects); i++) {
+    sdsclear(projects[i].pro_api_data);
+    project_pipelines_fetch_queue(cm, i);
+  }
+
+  api_fetch(cm);
+  curl_multi_cleanup(cm);
+
+  for (u64 i = 0; i < buf_size(projects); i++) {
+    project_t *project = &projects[i];
+    project_parse_pipelines_json(project);
+
+    for (u64 j = 0; j < buf_size(project->pro_pipelines); j++) {
+      const pipeline_t *const pipeline = &project->pro_pipelines[j];
+      printf(
+          "[%lld] Pipeline: id=%lld ref=%s created_at=%s updated_at=%s "
+          "status=%s url=%s\n",
+          project->pro_id, pipeline->pip_id, pipeline->pip_vcs_ref,
+          pipeline->pip_created_at, pipeline->pip_updated_at,
+          pipeline->pip_status, pipeline->pip_url);
+    }
+  }
 }

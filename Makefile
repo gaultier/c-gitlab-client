@@ -1,2 +1,5 @@
 LDFLAGS = -lcurl -lncurses
-gitlab_client: main.c
+
+HEADERS := $(wildcard *.h)
+gitlab_client: gitlab_client.c $(HEADERS)
+	$(CC) $(CFLAGS) $(LDFLAGS) -Wall -Wextra $< -o $@
