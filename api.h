@@ -186,8 +186,6 @@ static void projects_fetch(i64 *project_ids) {
   for (u64 i = 0; i < buf_size(project_ids); i++) {
     project_t *project = &projects[i];
     project_parse_json(project);
-    printf("Project: id=%lld path_with_namespace=%s name=%s\n", project->pro_id,
-           project->pro_path_with_namespace, project->pro_name);
   }
 }
 
@@ -205,15 +203,5 @@ static void pipelines_fetch() {
   for (u64 i = 0; i < buf_size(projects); i++) {
     project_t *project = &projects[i];
     project_parse_pipelines_json(project);
-
-    for (u64 j = 0; j < buf_size(project->pro_pipelines); j++) {
-      const pipeline_t *const pipeline = &project->pro_pipelines[j];
-      printf(
-          "[%lld] Pipeline: id=%lld ref=%s created_at=%s updated_at=%s "
-          "status=%s url=%s\n",
-          project->pro_id, pipeline->pip_id, pipeline->pip_vcs_ref,
-          pipeline->pip_created_at, pipeline->pip_updated_at,
-          pipeline->pip_status, pipeline->pip_url);
-    }
   }
 }

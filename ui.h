@@ -54,7 +54,7 @@ static void ui_draw() {
   set_menu_mark(menu, " * ");
 
   box(window, 0, 0);
-  ui_print_in_middle(window, 1, 0, 40, "My Menu", COLOR_PAIR(1));
+  ui_print_in_middle(window, 1, 0, 40, "Pipelines", COLOR_PAIR(1));
   mvwaddch(window, 2, 0, ACS_LTEE);
   mvwhline(window, 2, 1, ACS_HLINE, 38);
   mvwaddch(window, 2, 39, ACS_RTEE);
