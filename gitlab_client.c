@@ -1,4 +1,5 @@
 #include "api.h"
+#include "ui.h"
 
 int main() {
   i64 *project_ids = NULL;
@@ -11,4 +12,7 @@ int main() {
 
   projects_fetch(project_ids);
   pipelines_fetch();
+
+  ui_init();
+  ui_draw();
 }
