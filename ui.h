@@ -8,11 +8,22 @@ static void ui_init() {
   tb_select_input_mode(TB_INPUT_ESC);
 }
 
+static void ui_string_draw(const char* s, u64 len, int* x, int y, u16 fg,
+                           u16 bg) {
+  for (int i = 0; i < len; i++) {
+    tb_change_cell(*x, y, s[i], fg, bg);
+    *x += 1;
+  }
+}
+
 static void ui_pipelines_draw() {
-  u64 y = 1, x = 0;
-  const sds header = sdsnew("Id │ Status │ Url");
-  for (u64 k = 0; k < sdslen(header); k++)
-    tb_change_cell(x++, 0, header[k], TB_WHITE, TB_DEFAULT);
+  int y = 0, x = 0;
+  const char header[] = "Id │ Status │ Url";
+  ui_string_draw(header, sizeof(header) - 1, &x, y, TB_WHITE | TB_BOLD,
+                 TB_YELLOW);
+  for (int k = sizeof(header) - 1; k <= tb_width(); k++)
+    tb_change_cell(x++, 0, 0, TB_DEFAULT, TB_YELLOW);
+  y++;
 
   for (u64 i = 0; i < buf_size(projects); i++) {
     const project_t* const project = &projects[i];
@@ -21,12 +32,9 @@ static void ui_pipelines_draw() {
       const pipeline_t* const pipeline = &project->pro_pipelines[j];
       x = 0;
 
-      const sds row =
-          sdscatprintf(sdsempty(), "%lld │ %s │ %s", pipeline->pip_id,
-                       pipeline->pip_status, pipeline->pip_url);
-      for (u64 k = 0; k < sdslen(row); k++)
-        tb_change_cell(x++, y, row[k], TB_RED, TB_DEFAULT);
-
+      char id[27] = "";
+      snprintf(id, sizeof(id) - 1, "%lld", pipeline->pip_id);
+      ui_string_draw(id, sizeof(id) - 1, &x, y, TB_RED, TB_DEFAULT);
       y++;
     }
   }
