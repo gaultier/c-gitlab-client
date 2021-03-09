@@ -22,7 +22,7 @@ int main() {
                              "https://gitlab.com/bsd/freebsd/pipelines/100"),
                          .pip_created_at = sdsnew("2021-01-02T03:04:05Z"),
                          .pip_updated_at = sdsnew("2021-01-02T03:06:05Z"),
-                         .pip_status = sdsnew("succeeded")}));
+                         .pip_status = sdsnew("pending")}));
   buf_push(pipelines1,
            ((pipeline_t){.pip_id = 101,
                          .pip_vcs_ref = sdsnew("git://gitlab.git"),

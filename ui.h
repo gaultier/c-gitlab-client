@@ -18,7 +18,7 @@ static void ui_string_draw(const char* s, u64 len, int* x, int y, u16 fg,
 
 static void ui_pipelines_draw() {
   int y = 0, x = 0;
-  const char header[] = "Id │ Status │ Url";
+  const char header[] = "Id                        Status        Url";
   ui_string_draw(header, sizeof(header) - 1, &x, y, TB_WHITE | TB_BOLD,
                  TB_YELLOW);
   for (int k = sizeof(header) - 1; k <= tb_width(); k++)
@@ -35,6 +35,16 @@ static void ui_pipelines_draw() {
       char id[27] = "";
       snprintf(id, sizeof(id) - 1, "%lld", pipeline->pip_id);
       ui_string_draw(id, sizeof(id) - 1, &x, y, TB_RED, TB_DEFAULT);
+
+      char status[15] = "";
+      memcpy(status, pipeline->pip_status,
+             MIN(sizeof(status) - 1, sdslen(pipeline->pip_status)));
+      ui_string_draw(status, sizeof(status) - 1, &x, y, TB_RED, TB_DEFAULT);
+
+      char url[40] = "";
+      memcpy(url, pipeline->pip_url,
+             MIN(sizeof(url) - 1, sdslen(pipeline->pip_url)));
+      ui_string_draw(url, sizeof(url) - 1, &x, y, TB_RED, TB_DEFAULT);
       y++;
     }
   }

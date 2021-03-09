@@ -13,6 +13,10 @@
 #include "deps/sds/sds.h"
 #include "deps/sds/sdsalloc.h"
 
+#ifndef MIN
+#define MIN(x, y) ((x) < (y) ? (x) : (y))
+#endif
+
 typedef int64_t i64;
 typedef uint64_t u64;
 typedef uint16_t u16;
