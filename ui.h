@@ -56,18 +56,19 @@ static void ui_draw() {
   }
 
   menu = new_menu(items);
-  window = newwin(10, 40, 4, 4);
+  /* set_menu_format(menu, 10, 1); */
+  window = newwin(0, 0, 0, 0);
   keypad(window, TRUE);
   set_menu_win(menu, window);
-  set_menu_sub(menu, derwin(window, 6, 38, 3, 1));
-  set_menu_mark(menu, " * ");
+  set_menu_sub(menu, derwin(window, 0, 0, 1, 1));
+  set_menu_mark(menu, ">");
 
   box(window, 0, 0);
-  ui_print_in_middle(window, 1, 0, 40, "Pipelines", COLOR_PAIR(1));
-  mvwaddch(window, 2, 0, ACS_LTEE);
-  mvwhline(window, 2, 1, ACS_HLINE, 38);
-  mvwaddch(window, 2, 39, ACS_RTEE);
-  mvprintw(LINES - 2, 0, "F1 to exit");
+  /* ui_print_in_middle(window, 1, 0, 40, "Pipelines", COLOR_PAIR(1)); */
+  /* mvwaddch(window, 2, 0, ACS_LTEE); */
+  /* mvwhline(window, 2, 1, ACS_HLINE, 38); */
+  /* mvwaddch(window, 2, 39, ACS_RTEE); */
+  /* mvprintw(LINES - 2, 0, "F1 to exit"); */
   refresh();
 
   post_menu(menu);
@@ -77,12 +78,10 @@ static void ui_draw() {
   while ((c = wgetch(window)) != KEY_F(1)) {
     switch (c) {
       case KEY_DOWN:
-        menu_driver(menu, REQ_DOWN_ITEM);
-        menu_driver(menu, REQ_SCR_ULINE);
+        menu_driver(menu, REQ_NEXT_ITEM);
         break;
       case KEY_UP:
-        menu_driver(menu, REQ_UP_ITEM);
-        menu_driver(menu, REQ_SCR_DLINE);
+        menu_driver(menu, REQ_PREV_ITEM);
         break;
     }
     wrefresh(window);
