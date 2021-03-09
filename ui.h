@@ -1,90 +1,57 @@
-#include <menu.h>
-
-MENU* menu;
-WINDOW* window;
-ITEM** items;
+#include "deps/termbox/src/termbox.c"
+#include "deps/termbox/src/termbox.h"
+#include "deps/termbox/src/utf8.c"
 
 static void ui_init() {
-  initscr();
-  start_color();
-  cbreak();
-  noecho();
-  keypad(stdscr, TRUE);
-  init_pair(1, COLOR_RED, COLOR_BLACK);
+  tb_init();
+  tb_set_cursor(TB_HIDE_CURSOR, TB_HIDE_CURSOR);
+  tb_select_input_mode(TB_INPUT_ESC);
 }
 
-static void ui_print_in_middle(WINDOW* win, int starty, int startx, int width,
+static void ui_pipelines_draw() {
+  u64 y = 1, x = 0;
+  const sds header = sdsnew("Id │ Status │ Url");
+  for (u64 k = 0; k < sdslen(header); k++)
+    tb_change_cell(x++, 0, header[k], TB_WHITE, TB_DEFAULT);
 
-                               char* string, chtype color) {
-  int length, x, y;
-  float temp;
-
-  if (win == NULL) win = stdscr;
-  getyx(win, y, x);
-  if (startx != 0) x = startx;
-  if (starty != 0) y = starty;
-  if (width == 0) width = 80;
-
-  length = strlen(string);
-  temp = (width - length) / 2;
-  x = startx + (int)temp;
-  wattron(win, color);
-  mvwprintw(win, y, x, "%s", string);
-  wattroff(win, color);
-  refresh();
-}
-
-static void ui_draw() {
-  u64 pipeline_count = 0;
-  for (u64 i = 0; i < buf_size(projects); i++) {
-    const project_t* const project = &projects[i];
-
-    for (u64 j = 0; j < buf_size(project->pro_pipelines); j++) {
-      pipeline_count++;
-    }
-  }
-  items = calloc(pipeline_count, sizeof(void*));
-  u64 k = 0;
   for (u64 i = 0; i < buf_size(projects); i++) {
     const project_t* const project = &projects[i];
 
     for (u64 j = 0; j < buf_size(project->pro_pipelines); j++) {
       const pipeline_t* const pipeline = &project->pro_pipelines[j];
-      items[k++] = new_item(sdscatprintf(sdsempty(), "%lld", pipeline->pip_id),
-                            pipeline->pip_status);
+      x = 0;
+
+      const sds row =
+          sdscatprintf(sdsempty(), "%lld │ %s │ %s", pipeline->pip_id,
+                       pipeline->pip_status, pipeline->pip_url);
+      for (u64 k = 0; k < sdslen(row); k++)
+        tb_change_cell(x++, y, row[k], TB_RED, TB_DEFAULT);
+
+      y++;
     }
   }
+}
 
-  menu = new_menu(items);
-  /* set_menu_format(menu, 10, 1); */
-  window = newwin(0, 0, 0, 0);
-  keypad(window, TRUE);
-  set_menu_win(menu, window);
-  set_menu_sub(menu, derwin(window, 0, 0, 1, 1));
-  set_menu_mark(menu, ">");
+static void ui_draw() {
+  tb_clear();
+  ui_pipelines_draw();
+  tb_present();
 
-  box(window, 0, 0);
-  /* ui_print_in_middle(window, 1, 0, 40, "Pipelines", COLOR_PAIR(1)); */
-  /* mvwaddch(window, 2, 0, ACS_LTEE); */
-  /* mvwhline(window, 2, 1, ACS_HLINE, 38); */
-  /* mvwaddch(window, 2, 39, ACS_RTEE); */
-  /* mvprintw(LINES - 2, 0, "F1 to exit"); */
-  refresh();
-
-  post_menu(menu);
-  wrefresh(window);
-
-  int c;
-  while ((c = wgetch(window)) != KEY_F(1)) {
-    switch (c) {
-      case KEY_DOWN:
-        menu_driver(menu, REQ_NEXT_ITEM);
+  struct tb_event event;
+  while (tb_poll_event(&event)) {
+    switch (event.type) {
+      case TB_EVENT_RESIZE:
+        tb_clear();
+        ui_pipelines_draw();
+        tb_present();
         break;
-      case KEY_UP:
-        menu_driver(menu, REQ_PREV_ITEM);
+
+      case TB_EVENT_KEY:
+        tb_shutdown();
+        return;
+      default:
         break;
     }
-    wrefresh(window);
   }
 }
 

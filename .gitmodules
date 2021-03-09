@@ -4,3 +4,6 @@
 [submodule "deps/jsmn"]
 	path = deps/jsmn
 	url = https://github.com/zserge/jsmn.git
+[submodule "deps/termbox"]
+	path = deps/termbox
+	url = https://github.com/nsf/termbox
