@@ -17,6 +17,12 @@
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 #endif
 
+#ifndef MAX
+#define MAX(x, y) ((x) < (y) ? (y) : (x))
+#endif
+
+#define LEN0(s) (sizeof(s) - 1)
+
 typedef int64_t i64;
 typedef uint64_t u64;
 typedef uint16_t u16;
