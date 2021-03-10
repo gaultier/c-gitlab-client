@@ -112,9 +112,8 @@ static void ui_pipelines_draw(int* pipelines_count, int* pipeline_selected) {
 }
 
 static void ui_draw() {
-  tb_clear();
-
   int pipelines_count = 0, pipeline_selected = 0;
+  tb_clear();
   ui_pipelines_draw(&pipelines_count, &pipeline_selected);
   tb_present();
 
@@ -139,7 +138,8 @@ static void ui_draw() {
           tb_clear();
           ui_pipelines_draw(&pipelines_count, &pipeline_selected);
           tb_present();
-        } else if (event.key == TB_KEY_ESC) {
+        } else if (event.key == TB_KEY_ESC || event.key == TB_KEY_CTRL_C ||
+                   event.key == TB_KEY_CTRL_D) {
           tb_shutdown();
           return;
         }
