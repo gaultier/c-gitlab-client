@@ -23,15 +23,15 @@ static void ui_blank_draw(int count, int* x, int y, u16 fg, u16 bg) {
   }
 }
 
-static void ui_pipelines_header_draw(int* x, int max_width_id,
-                                     int max_width_status, int max_width_url,
+static void ui_pipelines_header_draw(int* x, int max_width_ref,
+                                     int max_width_status,
                                      int max_width_created,
                                      int max_width_updated) {
-  // Id
+  // REF
   {
-    const char header[] = "ID";
+    const char header[] = "REF";
     ui_string_draw(header, LEN0(header), x, 0, TB_WHITE | TB_BOLD, TB_DEFAULT);
-    ui_blank_draw(2 + max_width_id - LEN0(header), x, 0, TB_DEFAULT,
+    ui_blank_draw(2 + max_width_ref - LEN0(header), x, 0, TB_DEFAULT,
                   TB_DEFAULT);
   }
 
@@ -58,20 +58,12 @@ static void ui_pipelines_header_draw(int* x, int max_width_id,
     ui_blank_draw(2 + max_width_status - LEN0(header), x, 0, TB_DEFAULT,
                   TB_DEFAULT);
   }
-
-  // URL
-  {
-    const char header[] = "URL";
-    ui_string_draw(header, LEN0(header), x, 0, TB_WHITE | TB_BOLD, TB_DEFAULT);
-    ui_blank_draw(max_width_url - LEN0(header), x, 0, TB_DEFAULT, TB_DEFAULT);
-  }
-
   ui_blank_draw(tb_width() - *x, x, 0, TB_DEFAULT, TB_DEFAULT);
 }
 
 static int ui_iso_date_to_short_time(const sds date, const struct tm* now,
                                      char res[10]) {
-  struct tm time = *now;
+  struct tm time = {0};
   if (!strptime(date, "%FT%T", &time)) return sprintf(res, "?");
 
   struct tm diff = {.tm_year = now->tm_year - time.tm_year,
@@ -100,8 +92,8 @@ static int ui_iso_date_to_short_time(const sds date, const struct tm* now,
 }
 
 static void ui_pipelines_draw(int* pipelines_count, int* pipeline_selected) {
-  int max_width_id = 0, max_width_status = 0, max_width_url = 0,
-      max_width_created = 9, max_width_updated = 9;
+  int max_width_ref = 0, max_width_status = 0, max_width_created = 9,
+      max_width_updated = 9;
   {
     for (u64 i = 0; i < buf_size(projects); i++) {
       const project_t* const project = &projects[i];
@@ -109,12 +101,8 @@ static void ui_pipelines_draw(int* pipelines_count, int* pipeline_selected) {
       for (u64 j = 0; j < buf_size(project->pro_pipelines); j++) {
         const pipeline_t* const pipeline = &project->pro_pipelines[j];
 
-        char id[27] = "";
-        const int width = sprintf(id, "%lld", pipeline->pip_id);
-        max_width_id = MAX(max_width_id, width);
-
+        max_width_ref = MAX(max_width_ref, sdslen(pipeline->pip_vcs_ref));
         max_width_status = MAX(max_width_status, sdslen(pipeline->pip_status));
-        max_width_url = MAX(max_width_url, sdslen(pipeline->pip_url));
 
         *pipelines_count += 1;
       }
@@ -122,7 +110,7 @@ static void ui_pipelines_draw(int* pipelines_count, int* pipeline_selected) {
   }
 
   int y = 0, x = 0, k = 0;
-  ui_pipelines_header_draw(&x, max_width_id, max_width_status, max_width_url,
+  ui_pipelines_header_draw(&x, max_width_ref, max_width_status,
                            max_width_created, max_width_updated);
   y++;
 
@@ -143,10 +131,10 @@ static void ui_pipelines_draw(int* pipelines_count, int* pipeline_selected) {
         bg = TB_BLUE;
       }
 
-      char id[27] = "";
-      snprintf(id, LEN0(id), "%lld", pipeline->pip_id);
-      ui_string_draw(id, max_width_id, &x, y, fg, bg);
-      ui_blank_draw(2, &x, y, fg, bg);
+      ui_string_draw(pipeline->pip_vcs_ref, sdslen(pipeline->pip_vcs_ref), &x,
+                     y, fg, bg);
+      ui_blank_draw(2 + max_width_ref - sdslen(pipeline->pip_vcs_ref), &x, y,
+                    fg, bg);
 
       char res[10] = "";
       int width =
@@ -164,11 +152,6 @@ static void ui_pipelines_draw(int* pipelines_count, int* pipeline_selected) {
              MIN(LEN0(status), sdslen(pipeline->pip_status)));
       ui_string_draw(status, max_width_status, &x, y, fg, bg);
       ui_blank_draw(2, &x, y, fg, bg);
-
-      char url[500] = "";
-      memcpy(url, pipeline->pip_url, MIN(LEN0(url), sdslen(pipeline->pip_url)));
-      ui_string_draw(url, max_width_url, &x, y, fg, bg);
-      ui_blank_draw(tb_width() - x, &x, 0, fg, bg);
 
       y++;
       k++;
