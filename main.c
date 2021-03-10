@@ -16,7 +16,7 @@ int main() {
 #endif
   pipeline_t* pipelines1 = NULL;
   buf_push(pipelines1,
-           ((pipeline_t){.pip_id = 100,
+           ((pipeline_t){.pip_id = 1000000,
                          .pip_vcs_ref = sdsnew("git://gitlab.git"),
                          .pip_url = sdsnew(
                              "https://gitlab.com/bsd/freebsd/pipelines/100"),
@@ -199,7 +199,7 @@ int main() {
                          .pip_updated_at = sdsnew("2021-01-09T03:06:05Z"),
                          .pip_status = sdsnew("failed")}));
   buf_push(pipelines2,
-           ((pipeline_t){.pip_id = 202,
+           ((pipeline_t){.pip_id = 20002,
                          .pip_vcs_ref = sdsnew("git://gitlab.git"),
                          .pip_url = sdsnew(
                              "https://gitlab.com/bsd/freebsd/pipelines/202"),

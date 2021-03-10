@@ -27,22 +27,22 @@ static void ui_pipelines_header_draw(int* x, int max_width_id,
                                      int max_width_status, int max_width_url) {
   // Id
   {
-    const char header[] = "Id";
+    const char header[] = "ID";
     ui_string_draw(header, LEN0(header), x, 0, TB_WHITE | TB_BOLD, TB_YELLOW);
-    ui_blank_draw(1 + max_width_id - LEN0(header), x, 0, TB_DEFAULT, TB_YELLOW);
+    ui_blank_draw(2 + max_width_id - LEN0(header), x, 0, TB_DEFAULT, TB_YELLOW);
   }
 
   // Status
   {
-    const char header[] = "Status";
+    const char header[] = "STATUS";
     ui_string_draw(header, LEN0(header), x, 0, TB_WHITE | TB_BOLD, TB_YELLOW);
-    ui_blank_draw(1 + max_width_status - LEN0(header), x, 0, TB_DEFAULT,
+    ui_blank_draw(2 + max_width_status - LEN0(header), x, 0, TB_DEFAULT,
                   TB_YELLOW);
   }
 
   // URL
   {
-    const char header[] = "Url";
+    const char header[] = "URL";
     ui_string_draw(header, LEN0(header), x, 0, TB_WHITE | TB_BOLD, TB_YELLOW);
     ui_blank_draw(max_width_url - LEN0(header), x, 0, TB_DEFAULT, TB_YELLOW);
   }
@@ -83,13 +83,13 @@ static void ui_pipelines_draw() {
       char id[27] = "";
       snprintf(id, LEN0(id), "%lld", pipeline->pip_id);
       ui_string_draw(id, max_width_id, &x, y, TB_RED, TB_DEFAULT);
-      ui_blank_draw(1, &x, y, TB_DEFAULT, TB_DEFAULT);
+      ui_blank_draw(2, &x, y, TB_DEFAULT, TB_DEFAULT);
 
       char status[40] = "";
       memcpy(status, pipeline->pip_status,
              MIN(LEN0(status), sdslen(pipeline->pip_status)));
       ui_string_draw(status, max_width_status, &x, y, TB_RED, TB_DEFAULT);
-      ui_blank_draw(1, &x, y, TB_DEFAULT, TB_DEFAULT);
+      ui_blank_draw(2, &x, y, TB_DEFAULT, TB_DEFAULT);
 
       char url[500] = "";
       memcpy(url, pipeline->pip_url, MIN(LEN0(url), sdslen(pipeline->pip_url)));
