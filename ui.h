@@ -51,7 +51,7 @@ static void ui_pipelines_header_draw(int* x, int max_width_id,
   ui_blank_draw(tb_width() - *x, x, 0, TB_DEFAULT, TB_DEFAULT);
 }
 
-static void ui_pipelines_draw() {
+static void ui_pipelines_draw(int* pipelines_count, int* pipeline_selected) {
   int max_width_id = 0, max_width_status = 0, max_width_url = 0;
   {
     for (u64 i = 0; i < buf_size(projects); i++) {
@@ -66,11 +66,13 @@ static void ui_pipelines_draw() {
 
         max_width_status = MAX(max_width_status, sdslen(pipeline->pip_status));
         max_width_url = MAX(max_width_url, sdslen(pipeline->pip_url));
+
+        *pipelines_count += 1;
       }
     }
   }
 
-  int y = 0, x = 0, k = 0, pipeline_selected = 0;
+  int y = 0, x = 0, k = 0;
   ui_pipelines_header_draw(&x, max_width_id, max_width_status, max_width_url);
   y++;
 
@@ -82,7 +84,7 @@ static void ui_pipelines_draw() {
       x = 0;
 
       int fg = TB_BLUE, bg = TB_DEFAULT;
-      if (pipeline_selected == k) {
+      if (*pipeline_selected == k) {
         fg = TB_WHITE;
         bg = TB_BLUE;
       }
@@ -111,7 +113,9 @@ static void ui_pipelines_draw() {
 
 static void ui_draw() {
   tb_clear();
-  ui_pipelines_draw();
+
+  int pipelines_count = 0, pipeline_selected = 0;
+  ui_pipelines_draw(&pipelines_count, &pipeline_selected);
   tb_present();
 
   struct tb_event event;
@@ -119,13 +123,21 @@ static void ui_draw() {
     switch (event.type) {
       case TB_EVENT_RESIZE:
         tb_clear();
-        ui_pipelines_draw();
+        ui_pipelines_draw(&pipelines_count, &pipeline_selected);
         tb_present();
         break;
 
       case TB_EVENT_KEY:
-        tb_shutdown();
-        return;
+        if (event.key == TB_KEY_ARROW_DOWN &&
+            pipeline_selected < pipelines_count)
+          pipeline_selected++;
+        else if (event.key == TB_KEY_ARROW_UP && pipeline_selected > 0)
+          pipeline_selected--;
+        else if (event.key == TB_KEY_ESC) {
+          tb_shutdown();
+          return;
+        }
+        break;
       default:
         break;
     }
