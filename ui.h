@@ -24,12 +24,30 @@ static void ui_blank_draw(int count, int* x, int y, u16 fg, u16 bg) {
 }
 
 static void ui_pipelines_header_draw(int* x, int max_width_id,
-                                     int max_width_status, int max_width_url) {
+                                     int max_width_status, int max_width_url,
+                                     int max_width_created,
+                                     int max_width_updated) {
   // Id
   {
     const char header[] = "ID";
     ui_string_draw(header, LEN0(header), x, 0, TB_WHITE | TB_BOLD, TB_DEFAULT);
     ui_blank_draw(2 + max_width_id - LEN0(header), x, 0, TB_DEFAULT,
+                  TB_DEFAULT);
+  }
+
+  // Created
+  {
+    const char header[] = "CREATED";
+    ui_string_draw(header, LEN0(header), x, 0, TB_WHITE | TB_BOLD, TB_DEFAULT);
+    ui_blank_draw(2 + max_width_created - LEN0(header), x, 0, TB_DEFAULT,
+                  TB_DEFAULT);
+  }
+
+  // Status
+  {
+    const char header[] = "UPDATED";
+    ui_string_draw(header, LEN0(header), x, 0, TB_WHITE | TB_BOLD, TB_DEFAULT);
+    ui_blank_draw(2 + max_width_updated - LEN0(header), x, 0, TB_DEFAULT,
                   TB_DEFAULT);
   }
 
@@ -51,8 +69,39 @@ static void ui_pipelines_header_draw(int* x, int max_width_id,
   ui_blank_draw(tb_width() - *x, x, 0, TB_DEFAULT, TB_DEFAULT);
 }
 
+static int ui_iso_date_to_short_time(const sds date, const struct tm* now,
+                                     char res[10]) {
+  struct tm time = *now;
+  if (!strptime(date, "%FT%T", &time)) return sprintf(res, "?");
+
+  struct tm diff = {.tm_year = now->tm_year - time.tm_year,
+                    .tm_mon = now->tm_mon - time.tm_mon,
+                    .tm_mday = now->tm_mday - time.tm_mday,
+                    .tm_hour = now->tm_hour - time.tm_hour,
+                    .tm_min = now->tm_hour - time.tm_hour,
+                    .tm_sec = now->tm_sec - time.tm_sec};
+
+  if (diff.tm_year > 100)
+    return 0;
+  else if (diff.tm_year > 0)
+    return sprintf(res, "%dy", diff.tm_year);
+  else if (diff.tm_mon > 0)
+    return sprintf(res, "%dM", diff.tm_mon);
+  else if (diff.tm_mday > 0)
+    return sprintf(res, "%dd", diff.tm_mday);
+  else if (diff.tm_hour > 0)
+    return sprintf(res, "%dh", diff.tm_hour);
+  else if (diff.tm_min > 0)
+    return sprintf(res, "%dm", diff.tm_min);
+  else if (diff.tm_sec > 0)
+    return sprintf(res, "%ds", diff.tm_sec);
+  else
+    return sprintf(res, "now");
+}
+
 static void ui_pipelines_draw(int* pipelines_count, int* pipeline_selected) {
-  int max_width_id = 0, max_width_status = 0, max_width_url = 0;
+  int max_width_id = 0, max_width_status = 0, max_width_url = 0,
+      max_width_created = 9, max_width_updated = 9;
   {
     for (u64 i = 0; i < buf_size(projects); i++) {
       const project_t* const project = &projects[i];
@@ -73,8 +122,13 @@ static void ui_pipelines_draw(int* pipelines_count, int* pipeline_selected) {
   }
 
   int y = 0, x = 0, k = 0;
-  ui_pipelines_header_draw(&x, max_width_id, max_width_status, max_width_url);
+  ui_pipelines_header_draw(&x, max_width_id, max_width_status, max_width_url,
+                           max_width_created, max_width_updated);
   y++;
+
+  time_t now_epoch = time(NULL);
+  struct tm now;
+  gmtime_r(&now_epoch, &now);
 
   for (u64 i = 0; i < buf_size(projects); i++) {
     const project_t* const project = &projects[i];
@@ -93,6 +147,17 @@ static void ui_pipelines_draw(int* pipelines_count, int* pipeline_selected) {
       snprintf(id, LEN0(id), "%lld", pipeline->pip_id);
       ui_string_draw(id, max_width_id, &x, y, fg, bg);
       ui_blank_draw(2, &x, y, fg, bg);
+
+      char res[10] = "";
+      int width =
+          ui_iso_date_to_short_time(pipeline->pip_created_at, &now, res);
+      ui_string_draw(res, width, &x, y, fg, bg);
+      ui_blank_draw(2 + LEN0(res) - width, &x, y, fg, bg);
+
+      memset(res, 0, LEN0(res));
+      width = ui_iso_date_to_short_time(pipeline->pip_updated_at, &now, res);
+      ui_string_draw(res, width, &x, y, fg, bg);
+      ui_blank_draw(2 + LEN0(res) - width, &x, y, fg, bg);
 
       char status[40] = "";
       memcpy(status, pipeline->pip_status,

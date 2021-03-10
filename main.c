@@ -2,8 +2,9 @@
 #include "ui.h"
 
 int main() {
-#if 0
-  i64 *project_ids = NULL;
+  ui_init();
+#ifndef TEST
+  i64* project_ids = NULL;
   buf_push(project_ids, 3472737);
   buf_push(project_ids, 278964);
 
@@ -13,7 +14,7 @@ int main() {
 
   projects_fetch(project_ids);
   pipelines_fetch();
-#endif
+#else
   pipeline_t* pipelines1 = NULL;
   buf_push(pipelines1,
            ((pipeline_t){.pip_id = 1000000,
@@ -212,6 +213,7 @@ int main() {
                          .pro_path_with_namespace = sdsnew("bsd/Freebsd"),
                          .pro_pipelines = pipelines2,
                      }));
-  ui_init();
+#endif
+
   ui_draw();
 }
