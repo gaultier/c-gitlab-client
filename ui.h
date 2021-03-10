@@ -129,11 +129,17 @@ static void ui_draw() {
 
       case TB_EVENT_KEY:
         if (event.key == TB_KEY_ARROW_DOWN &&
-            pipeline_selected < pipelines_count)
+            pipeline_selected < pipelines_count) {
           pipeline_selected++;
-        else if (event.key == TB_KEY_ARROW_UP && pipeline_selected > 0)
+          tb_clear();
+          ui_pipelines_draw(&pipelines_count, &pipeline_selected);
+          tb_present();
+        } else if (event.key == TB_KEY_ARROW_UP && pipeline_selected > 0) {
           pipeline_selected--;
-        else if (event.key == TB_KEY_ESC) {
+          tb_clear();
+          ui_pipelines_draw(&pipelines_count, &pipeline_selected);
+          tb_present();
+        } else if (event.key == TB_KEY_ESC) {
           tb_shutdown();
           return;
         }
