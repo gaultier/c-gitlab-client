@@ -1,13 +1,60 @@
+#include <getopt.h>
+#include <stdlib.h>
+#include <unistd.h>
+
 #include "api.h"
 #include "ui.h"
 
-int main() {
-  ui_init();
-#ifndef TEST
-  i64* project_ids = NULL;
-  buf_push(project_ids, 3472737);
-  buf_push(project_ids, 278964);
+static void help_print(char* program_name) {
+  printf(
+      "Usage: %s (--url|-u url) project_id ...\n\n"
+      "  --url url The url where gitlab resides, e.g. `https://gitlab.com`",
+      program_name);
+}
 
+int main(int argc, char* argv[]) {
+  char* argv0 = argv[0];
+
+  char* url = NULL;
+  struct option options[] = {
+      {.name = "url", .has_arg = required_argument, .val = 'u'}, {0}};
+  int index = 0, ch = 0;
+  while ((ch = getopt_long(argc, argv, "hu:", options, &index)) != -1) {
+    switch (ch) {
+      case 'u':
+        url = optarg;
+        break;
+      case 'h':
+      case '?':
+      default:
+        help_print(argv0);
+        return 0;
+    }
+  }
+  argc -= optind;
+  argv += optind;
+
+  if (!url) {
+    fprintf(stderr, "Missing url.\n");
+    help_print(argv0);
+    return 1;
+  }
+
+  i64* project_ids = NULL;
+  for (int i = 0; i < argc; i++) {
+    char* end = NULL;
+    uint64_t id = strtoull(argv[i], &end, 10);
+    if (end != NULL && *end != 0) {
+      fprintf(stderr, "Invalid project id: %s\n", argv[i]);
+      help_print(argv0);
+      return 1;
+    }
+    buf_push(project_ids, id);
+  }
+
+  ui_init();
+
+#ifndef TEST
   curl_global_init(CURL_GLOBAL_ALL);
 
   buf_trunc(json_tokens, 10 * 1024);  // 10 KiB
