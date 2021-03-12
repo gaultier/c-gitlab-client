@@ -1,5 +1,7 @@
 #pragma once
 
+#include <pthread.h>
+
 #include "common.h"
 
 jsmntok_t *json_tokens;
@@ -13,10 +15,8 @@ static int json_eq(const char *json, const jsmntok_t *tok, const char *s,
   return -1;
 }
 
-project_t *projects = NULL;
-
 static void project_parse_json(project_t *project) {
-  buf_clear(json_tokens);
+  buf_grow(json_tokens, 10 * 1024);
 
   jsmn_parser parser;
   jsmn_init(&parser);
@@ -67,6 +67,7 @@ static void project_parse_pipelines_json(project_t *project) {
   }
 
   pipeline_t *pipeline = NULL;
+  pthread_mutex_lock(&projects_lock);
   for (i64 i = 1; i < res; i++) {
     const jsmntok_t *const tok = &json_tokens[i];
     if (tok->type == JSMN_OBJECT) {
@@ -123,6 +124,7 @@ static void project_parse_pipelines_json(project_t *project) {
           sdscatlen(pipeline->pip_url, value, t->end - t->start);
     }
   }
+  pthread_mutex_unlock(&projects_lock);
 }
 
 static size_t write_cb(char *data, size_t n, size_t l, void *userp) {
@@ -183,13 +185,13 @@ static void api_fetch(CURLM *cm) {
       i64 project_i = 0;
       curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, &project_i);
 
-      project_t *project = &projects[project_i];
       if (msg->msg == CURLMSG_DONE) {
         fprintf(stderr, "R: %d - %s\n", msg->data.result,
                 curl_easy_strerror(msg->data.result));
         curl_multi_remove_handle(cm, e);
         curl_easy_cleanup(e);
       } else {
+        project_t *project = &projects[project_i];
         fprintf(stderr, "Failed to fetch from API: id=%lld err=%d\n",
                 project->pro_id, msg->msg);
       }
@@ -223,8 +225,10 @@ static void pipelines_fetch(const args_t *args) {
   CURLM *cm = curl_multi_init();
 
   for (u64 i = 0; i < buf_size(projects); i++) {
+    pthread_mutex_lock(&projects_lock);
     sdsclear(projects[i].pro_api_data);
     project_pipelines_fetch_queue(cm, i, args);
+    pthread_mutex_unlock(&projects_lock);
   }
 
   api_fetch(cm);
@@ -236,14 +240,15 @@ static void pipelines_fetch(const args_t *args) {
   }
 }
 
-static void fetch(const args_t *args) {
+static void *fetch(void *v_args) {
+  args_t *args = v_args;
   curl_global_init(CURL_GLOBAL_ALL);
 
-  buf_trunc(json_tokens, 10 * 1024);  // 10 KiB
-
   for (;;) {
-    projects_fetch(args);
+    buf_trunc(json_tokens, 10 * 1024);  // 10 KiB
     pipelines_fetch(args);
     sleep(5);
   }
+  return NULL;
 }
+

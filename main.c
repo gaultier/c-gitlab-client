@@ -64,10 +64,16 @@ int main(int argc, char* argv[]) {
     }
     buf_push(args.project_ids, id);
   }
+  buf_grow(projects, buf_size(args.project_ids));
+
+  pthread_mutex_init(&projects_lock, NULL);
+  projects_fetch(&args);
 
   pthread_t fetch_thread;
   pthread_create(&fetch_thread, NULL, fetch, &args);
 
   ui_init();
   ui_draw();
+
+  pthread_join(fetch_thread, NULL);
 }

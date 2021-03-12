@@ -44,6 +44,9 @@ typedef struct {
   u64 *project_ids;
 } args_t;
 
+project_t *projects = NULL;
+pthread_mutex_t projects_lock;
+
 static void args_init(args_t *args) {
   args->base_url = sdsempty();
   args->token = sdsempty();

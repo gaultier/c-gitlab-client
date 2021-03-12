@@ -11,13 +11,11 @@ typedef struct {
   int tab_max_width_cols[5];
   int tab_y, tab_h, tab_selected;
   pipeline_t* tab_pipelines;
-  pthread_mutex_t tab_projects_lock;
 } table_t;
 
 static table_t table_init() {
   table_t table = {.tab_max_width_cols = {[2] = 9, [3] = 9},
                    .tab_h = tb_height() - 1};  // -1 for header
-  pthread_mutex_init(&table.tab_projects_lock, NULL);
   return table;
 }
 
@@ -38,7 +36,7 @@ static void table_resize(table_t* table) {
 static void table_set_pipelines(table_t* table) {
   buf_clear(table->tab_pipelines);
 
-  pthread_mutex_lock(&table->tab_projects_lock);
+  pthread_mutex_lock(&projects_lock);
   for (int i = 0; i < (int)buf_size(projects); i++) {
     project_t* project = &projects[i];
 
@@ -60,7 +58,7 @@ static void table_set_pipelines(table_t* table) {
       buf_push(table->tab_pipelines, *pipeline);
     }
   }
-  pthread_mutex_unlock(&table->tab_projects_lock);
+  pthread_mutex_unlock(&projects_lock);
 }
 
 static void ui_init() {
