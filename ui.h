@@ -3,27 +3,29 @@
 #include "deps/termbox/src/utf8.c"
 
 typedef struct {
-  int max_width_cols[4];
-  int y, h, selected;
-  const pipeline_t** pipelines;
+  int tab_max_width_cols[4];
+  int tab_y, tab_h, tab_selected;
+  const pipeline_t** tab_pipelines;
 
 } table_t;
 
 static table_t table_init() {
-  table_t table = {.max_width_cols = {0, 9, 9, 0},
-                   .h = tb_height() - 1};  // -1 for header
+  table_t table = {.tab_max_width_cols = {0, 9, 9, 0},
+                   .tab_h = tb_height() - 1};  // -1 for header
   return table;
 }
 
-static void table_scroll_top(table_t* table) { table->y = table->selected = 0; }
+static void table_scroll_top(table_t* table) {
+  table->tab_y = table->tab_selected = 0;
+}
 
 static void table_scroll_bottom(table_t* table) {
-  table->y = MAX(0, buf_size(table->pipelines) - table->h);
-  table->selected = buf_size(table->pipelines) - 1;
+  table->tab_y = MAX(0, buf_size(table->tab_pipelines) - table->tab_h);
+  table->tab_selected = buf_size(table->tab_pipelines) - 1;
 }
 
 static void table_set_pipelines(table_t* table) {
-  buf_clear(table->pipelines);
+  buf_clear(table->tab_pipelines);
 
   for (int i = 0; i < (int)buf_size(projects); i++) {
     const project_t* const project = &projects[i];
@@ -32,13 +34,13 @@ static void table_set_pipelines(table_t* table) {
       const pipeline_t* const pipeline = &project->pro_pipelines[j];
 
       int col = 0;
-      table->max_width_cols[col] =
-          MAX(table->max_width_cols[col], (int)sdslen(pipeline->pip_vcs_ref));
+      table->tab_max_width_cols[col] = MAX(table->tab_max_width_cols[col],
+                                           (int)sdslen(pipeline->pip_vcs_ref));
       col += 3;  // skip created, updated
-      table->max_width_cols[col] =
-          MAX(table->max_width_cols[col], (int)sdslen(pipeline->pip_status));
+      table->tab_max_width_cols[col] = MAX(table->tab_max_width_cols[col],
+                                           (int)sdslen(pipeline->pip_status));
 
-      buf_push(table->pipelines, pipeline);
+      buf_push(table->tab_pipelines, pipeline);
     }
   }
 }
@@ -100,7 +102,7 @@ static void table_header_draw(table_t* table) {
   {
     const char header[] = "REF";
     ui_string_draw(header, LEN0(header), &x, 0, TB_WHITE | TB_BOLD, TB_DEFAULT);
-    ui_blank_draw(2 + table->max_width_cols[col++] - LEN0(header), &x, 0,
+    ui_blank_draw(2 + table->tab_max_width_cols[col++] - LEN0(header), &x, 0,
                   TB_DEFAULT, TB_DEFAULT);
   }
 
@@ -108,7 +110,7 @@ static void table_header_draw(table_t* table) {
   {
     const char header[] = "CREATED";
     ui_string_draw(header, LEN0(header), &x, 0, TB_WHITE | TB_BOLD, TB_DEFAULT);
-    ui_blank_draw(2 + table->max_width_cols[col++] - LEN0(header), &x, 0,
+    ui_blank_draw(2 + table->tab_max_width_cols[col++] - LEN0(header), &x, 0,
                   TB_DEFAULT, TB_DEFAULT);
   }
 
@@ -116,7 +118,7 @@ static void table_header_draw(table_t* table) {
   {
     const char header[] = "UPDATED";
     ui_string_draw(header, LEN0(header), &x, 0, TB_WHITE | TB_BOLD, TB_DEFAULT);
-    ui_blank_draw(2 + table->max_width_cols[col++] - LEN0(header), &x, 0,
+    ui_blank_draw(2 + table->tab_max_width_cols[col++] - LEN0(header), &x, 0,
                   TB_DEFAULT, TB_DEFAULT);
   }
 
@@ -124,7 +126,7 @@ static void table_header_draw(table_t* table) {
   {
     const char header[] = "STATUS";
     ui_string_draw(header, LEN0(header), &x, 0, TB_WHITE | TB_BOLD, TB_DEFAULT);
-    ui_blank_draw(2 + table->max_width_cols[col++] - LEN0(header), &x, 0,
+    ui_blank_draw(2 + table->tab_max_width_cols[col++] - LEN0(header), &x, 0,
                   TB_DEFAULT, TB_DEFAULT);
   }
   ui_blank_draw(tb_width() - x, &x, 0, TB_DEFAULT, TB_DEFAULT);
@@ -137,14 +139,14 @@ static void table_draw(table_t* table) {
   struct tm now;
   gmtime_r(&now_epoch, &now);
 
-  for (int i = 0; i < table->h; i++) {
-    int p = i + table->y, y = i + 1, x = 0, col = 0;
+  for (int i = 0; i < table->tab_h; i++) {
+    int p = i + table->tab_y, y = i + 1, x = 0, col = 0;
 
-    if (p >= (int)buf_size(table->pipelines)) return;
-    const pipeline_t* const pipeline = table->pipelines[p];
+    if (p >= (int)buf_size(table->tab_pipelines)) return;
+    const pipeline_t* const pipeline = table->tab_pipelines[p];
 
     int fg = TB_BLUE, bg = TB_DEFAULT;
-    if (table->selected == p) {
+    if (table->tab_selected == p) {
       fg = TB_WHITE;
       bg = TB_BLUE;
     }
@@ -152,23 +154,23 @@ static void table_draw(table_t* table) {
     ui_string_draw(pipeline->pip_vcs_ref, sdslen(pipeline->pip_vcs_ref), &x, y,
                    fg, bg);
     ui_blank_draw(
-        2 + table->max_width_cols[col++] - sdslen(pipeline->pip_vcs_ref), &x, y,
-        fg, bg);
+        2 + table->tab_max_width_cols[col++] - sdslen(pipeline->pip_vcs_ref),
+        &x, y, fg, bg);
 
     char res[10] = "";
     int width = ui_iso_date_to_short_time(pipeline->pip_created_at, &now, res);
     ui_string_draw(res, width, &x, y, fg, bg);
-    ui_blank_draw(2 + table->max_width_cols[col++] - width, &x, y, fg, bg);
+    ui_blank_draw(2 + table->tab_max_width_cols[col++] - width, &x, y, fg, bg);
 
     memset(res, 0, LEN0(res));
     width = ui_iso_date_to_short_time(pipeline->pip_updated_at, &now, res);
     ui_string_draw(res, width, &x, y, fg, bg);
-    ui_blank_draw(2 + table->max_width_cols[col++] - width, &x, y, fg, bg);
+    ui_blank_draw(2 + table->tab_max_width_cols[col++] - width, &x, y, fg, bg);
 
     char status[40] = "";
     memcpy(status, pipeline->pip_status,
            MIN(LEN0(status), sdslen(pipeline->pip_status)));
-    ui_string_draw(status, table->max_width_cols[col++], &x, y, fg, bg);
+    ui_string_draw(status, table->tab_max_width_cols[col++], &x, y, fg, bg);
     ui_blank_draw(2, &x, y, fg, bg);
   }
 }
@@ -192,14 +194,15 @@ static void ui_draw() {
 
       case TB_EVENT_KEY:
         if (event.key == TB_KEY_ARROW_DOWN) {
-          if (table.selected < (int)buf_size(table.pipelines) - 1)
-            table.selected++;
-          if (table.selected == (table.y + table.h) &&
-              table.y + table.h < (int)buf_size(table.pipelines))
-            table.y++;
+          if (table.tab_selected < (int)buf_size(table.tab_pipelines) - 1)
+            table.tab_selected++;
+          if (table.tab_selected == (table.tab_y + table.tab_h) &&
+              table.tab_y + table.tab_h < (int)buf_size(table.tab_pipelines))
+            table.tab_y++;
         } else if (event.key == TB_KEY_ARROW_UP) {
-          if (table.selected > 0) table.selected--;
-          if (table.selected == table.y && table.y > 0) table.y--;
+          if (table.tab_selected > 0) table.tab_selected--;
+          if (table.tab_selected == table.tab_y && table.tab_y > 0)
+            table.tab_y--;
         } else if (event.key == TB_KEY_ESC || event.key == TB_KEY_CTRL_C ||
                    event.key == TB_KEY_CTRL_D) {
           tb_shutdown();
