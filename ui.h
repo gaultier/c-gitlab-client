@@ -11,6 +11,28 @@ typedef struct {
 
 static table_t table_init() {
   table_t table = {.max_width_cols = {0, 9, 9, 0}};
+  return table;
+}
+
+static void table_set_pipelines(table_t* table) {
+  buf_clear(table->pipelines);
+
+  for (u64 i = 0; i < buf_size(projects); i++) {
+    const project_t* const project = &projects[i];
+
+    for (u64 j = 0; j < buf_size(project->pro_pipelines); j++) {
+      const pipeline_t* const pipeline = &project->pro_pipelines[j];
+
+      int col = 0;
+      table->max_width_cols[col] =
+          MAX(table->max_width_cols[col], sdslen(pipeline->pip_vcs_ref));
+      col += 3;  // skip created, updated
+      table->max_width_cols[col] =
+          MAX(table->max_width_cols[col], sdslen(pipeline->pip_status));
+
+      buf_push(table->pipelines, pipeline);
+    }
+  }
 }
 
 static void ui_init() {
@@ -101,25 +123,6 @@ static void table_header_draw(table_t* table) {
 }
 
 static void table_draw(table_t* table) {
-  buf_clear(table->pipelines);
-
-  for (u64 i = 0; i < buf_size(projects); i++) {
-    const project_t* const project = &projects[i];
-
-    for (u64 j = 0; j < buf_size(project->pro_pipelines); j++) {
-      const pipeline_t* const pipeline = &project->pro_pipelines[j];
-
-      int col = 0;
-      table->max_width_cols[col] =
-          MAX(table->max_width_cols[col], sdslen(pipeline->pip_vcs_ref));
-      col++;
-      table->max_width_cols[col] =
-          MAX(table->max_width_cols[col], sdslen(pipeline->pip_status));
-
-      buf_push(table->pipelines, pipeline);
-    }
-  }
-
   table_header_draw(table);
 
   time_t now_epoch = time(NULL);
@@ -162,6 +165,7 @@ static void table_draw(table_t* table) {
 
 static void ui_draw() {
   table_t table = table_init();
+  table_set_pipelines(&table);
 
   tb_clear();
   table_draw(&table);
