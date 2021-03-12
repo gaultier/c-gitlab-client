@@ -15,6 +15,13 @@ static table_t table_init() {
   return table;
 }
 
+static void table_scroll_top(table_t* table) { table->y = table->selected = 0; }
+
+static void table_scroll_bottom(table_t* table) {
+  table->y = MAX(0, buf_size(table->pipelines) - table->h);
+  table->selected = buf_size(table->pipelines) - 1;
+}
+
 static void table_set_pipelines(table_t* table) {
   buf_clear(table->pipelines);
 
@@ -190,23 +197,21 @@ static void ui_draw() {
           if (table.selected == (table.y + table.h) &&
               table.y + table.h < (int)buf_size(table.pipelines))
             table.y++;
-
-          tb_clear();
-          table_draw(&table);
-          tb_present();
-
         } else if (event.key == TB_KEY_ARROW_UP) {
           if (table.selected > 0) table.selected--;
           if (table.selected == table.y && table.y > 0) table.y--;
-
-          tb_clear();
-          table_draw(&table);
-          tb_present();
         } else if (event.key == TB_KEY_ESC || event.key == TB_KEY_CTRL_C ||
                    event.key == TB_KEY_CTRL_D) {
           tb_shutdown();
           return;
+        } else if (event.ch == 'G') {
+          table_scroll_bottom(&table);
+        } else if (event.ch == 'g') {
+          table_scroll_top(&table);
         }
+        tb_clear();
+        table_draw(&table);
+        tb_present();
         break;
       default:
         break;
