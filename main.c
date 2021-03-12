@@ -206,7 +206,7 @@ int main() {
                              "https://gitlab.com/bsd/freebsd/pipelines/202"),
                          .pip_created_at = sdsnew("2021-01-02T04:04:05Z"),
                          .pip_updated_at = sdsnew("2021-01-07T03:06:05Z"),
-                         .pip_status = sdsnew("failed")}));
+                         .pip_status = sdsnew("canceled")}));
   buf_push(projects, ((project_t){
                          .pro_id = 1,
                          .pro_name = sdsnew("Freebsd"),

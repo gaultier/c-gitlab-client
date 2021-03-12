@@ -4,13 +4,14 @@
 
 typedef struct {
   int max_width_cols[4];
-  int h, selected;
+  int y, h, selected;
   const pipeline_t** pipelines;
 
 } table_t;
 
 static table_t table_init() {
-  table_t table = {.max_width_cols = {0, 9, 9, 0}, .h = 10};
+  table_t table = {.max_width_cols = {0, 9, 9, 0},
+                   .h = tb_height() - 1};  // -1 for header
   return table;
 }
 
@@ -129,13 +130,14 @@ static void table_draw(table_t* table) {
   struct tm now;
   gmtime_r(&now_epoch, &now);
 
-  for (int i = 0; i <= MIN(table->h, (int)buf_size(table->pipelines)); i++) {
-    int y = 1 + i;
-    const pipeline_t* const pipeline = table->pipelines[i];
-    int x = 0, col = 0;
+  for (int i = 0; i < table->h; i++) {
+    int p = i + table->y, y = i + 1, x = 0, col = 0;
+
+    if (p >= (int)buf_size(table->pipelines)) return;
+    const pipeline_t* const pipeline = table->pipelines[p];
 
     int fg = TB_BLUE, bg = TB_DEFAULT;
-    if (table->selected == i) {
+    if (table->selected == p) {
       fg = TB_WHITE;
       bg = TB_BLUE;
     }
@@ -182,14 +184,21 @@ static void ui_draw() {
         break;
 
       case TB_EVENT_KEY:
-        if (event.key == TB_KEY_ARROW_DOWN &&
-            table.selected < (int)buf_size(table.pipelines)) {
-          table.selected++;
+        if (event.key == TB_KEY_ARROW_DOWN) {
+          if (table.selected < (int)buf_size(table.pipelines) - 1)
+            table.selected++;
+          if (table.selected == (table.y + table.h) &&
+              table.y + table.h < (int)buf_size(table.pipelines))
+            table.y++;
+
           tb_clear();
           table_draw(&table);
           tb_present();
-        } else if (event.key == TB_KEY_ARROW_UP && table.selected > 0) {
-          table.selected--;
+
+        } else if (event.key == TB_KEY_ARROW_UP) {
+          if (table.selected > 0) table.selected--;
+          if (table.selected == table.y && table.y > 0) table.y--;
+
           tb_clear();
           table_draw(&table);
           tb_present();
