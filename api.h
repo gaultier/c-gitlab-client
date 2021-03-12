@@ -135,7 +135,8 @@ static void project_fetch_queue(CURLM *cm, int i, uint64_t *project_ids,
              "%s/api/v4/projects/%llu?simple=true&private_token=%s", base_url,
              project_ids[i], token);
   else
-    snprintf(url, LEN0(url), "%s/%llu", base_url, project_ids[i]);
+    snprintf(url, LEN0(url), "%s/api/v4/projects/%llu", base_url,
+             project_ids[i]);
 
   CURL *eh = curl_easy_init();
   curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, write_cb);
