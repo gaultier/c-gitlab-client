@@ -1,3 +1,5 @@
+#pragma once
+
 #include "deps/termbox/src/termbox.c"
 #include "deps/termbox/src/termbox.h"
 #include "deps/termbox/src/utf8.c"
