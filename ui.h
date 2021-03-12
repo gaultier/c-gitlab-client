@@ -4,31 +4,31 @@
 
 typedef struct {
   int max_width_cols[4];
-  int w, h, selected;
-  pipeline_t** pipelines;
+  int h, selected;
+  const pipeline_t** pipelines;
 
 } table_t;
 
 static table_t table_init() {
-  table_t table = {.max_width_cols = {0, 9, 9, 0}};
+  table_t table = {.max_width_cols = {0, 9, 9, 0}, .h = 10};
   return table;
 }
 
 static void table_set_pipelines(table_t* table) {
   buf_clear(table->pipelines);
 
-  for (u64 i = 0; i < buf_size(projects); i++) {
+  for (int i = 0; i < (int)buf_size(projects); i++) {
     const project_t* const project = &projects[i];
 
-    for (u64 j = 0; j < buf_size(project->pro_pipelines); j++) {
+    for (int j = 0; j < (int)buf_size(project->pro_pipelines); j++) {
       const pipeline_t* const pipeline = &project->pro_pipelines[j];
 
       int col = 0;
       table->max_width_cols[col] =
-          MAX(table->max_width_cols[col], sdslen(pipeline->pip_vcs_ref));
+          MAX(table->max_width_cols[col], (int)sdslen(pipeline->pip_vcs_ref));
       col += 3;  // skip created, updated
       table->max_width_cols[col] =
-          MAX(table->max_width_cols[col], sdslen(pipeline->pip_status));
+          MAX(table->max_width_cols[col], (int)sdslen(pipeline->pip_status));
 
       buf_push(table->pipelines, pipeline);
     }
@@ -41,7 +41,7 @@ static void ui_init() {
   tb_select_input_mode(TB_INPUT_ESC);
 }
 
-static void ui_string_draw(const char* s, u64 len, int* x, int y, u16 fg,
+static void ui_string_draw(const char* s, int len, int* x, int y, u16 fg,
                            u16 bg) {
   for (int i = 0; i < len; i++) {
     tb_change_cell(*x, y, s[i], fg, bg);
@@ -129,12 +129,13 @@ static void table_draw(table_t* table) {
   struct tm now;
   gmtime_r(&now_epoch, &now);
 
-  for (u64 y = 1; y <= buf_size(table->pipelines); y++) {
-    const pipeline_t* const pipeline = table->pipelines[y - 1];
+  for (int i = 0; i <= MIN(table->h, (int)buf_size(table->pipelines)); i++) {
+    int y = 1 + i;
+    const pipeline_t* const pipeline = table->pipelines[i];
     int x = 0, col = 0;
 
     int fg = TB_BLUE, bg = TB_DEFAULT;
-    if (table->selected == y - 1) {
+    if (table->selected == i) {
       fg = TB_WHITE;
       bg = TB_BLUE;
     }
@@ -182,7 +183,7 @@ static void ui_draw() {
 
       case TB_EVENT_KEY:
         if (event.key == TB_KEY_ARROW_DOWN &&
-            table.selected < buf_size(table.pipelines)) {
+            table.selected < (int)buf_size(table.pipelines)) {
           table.selected++;
           tb_clear();
           table_draw(&table);
