@@ -29,7 +29,8 @@ typedef uint16_t u16;
 
 typedef struct {
   i64 pip_id;
-  sds pip_vcs_ref, pip_url, pip_created_at, pip_updated_at, pip_status;
+  sds pip_vcs_ref, pip_url, pip_created_at, pip_updated_at, pip_status,
+      pip_project_name;
 } pipeline_t;
 
 typedef struct {

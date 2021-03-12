@@ -69,6 +69,7 @@ static void project_parse_pipelines_json(project_t *project) {
     if (tok->type == JSMN_OBJECT) {
       buf_push(project->pro_pipelines, ((pipeline_t){0}));
       pipeline = &project->pro_pipelines[buf_size(project->pro_pipelines) - 1];
+      pipeline->pip_project_name = project->pro_name;
       continue;
     }
 

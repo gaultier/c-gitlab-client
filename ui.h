@@ -3,14 +3,14 @@
 #include "deps/termbox/src/utf8.c"
 
 typedef struct {
-  int tab_max_width_cols[4];
+  int tab_max_width_cols[5];
   int tab_y, tab_h, tab_selected;
   const pipeline_t** tab_pipelines;
 
 } table_t;
 
 static table_t table_init() {
-  table_t table = {.tab_max_width_cols = {0, 9, 9, 0},
+  table_t table = {.tab_max_width_cols = {[2] = 9, [3] = 9},
                    .tab_h = tb_height() - 1};  // -1 for header
   return table;
 }
@@ -34,6 +34,11 @@ static void table_set_pipelines(table_t* table) {
       const pipeline_t* const pipeline = &project->pro_pipelines[j];
 
       int col = 0;
+      table->tab_max_width_cols[col] =
+          MAX(table->tab_max_width_cols[col],
+              (int)sdslen(pipeline->pip_project_name));
+      col++;
+
       table->tab_max_width_cols[col] = MAX(table->tab_max_width_cols[col],
                                            (int)sdslen(pipeline->pip_vcs_ref));
       col += 3;  // skip created, updated
@@ -98,6 +103,13 @@ static int ui_iso_date_to_short_time(const sds date, const struct tm* now,
 
 static void table_header_draw(table_t* table) {
   int col = 0, x = 0;
+  // Project name
+  {
+    const char header[] = "PROJECT";
+    ui_string_draw(header, LEN0(header), &x, 0, TB_WHITE | TB_BOLD, TB_DEFAULT);
+    ui_blank_draw(2 + table->tab_max_width_cols[col++] - LEN0(header), &x, 0,
+                  TB_DEFAULT, TB_DEFAULT);
+  }
   // Ref
   {
     const char header[] = "REF";
@@ -150,6 +162,12 @@ static void table_draw(table_t* table) {
       fg = TB_WHITE;
       bg = TB_BLUE;
     }
+
+    ui_string_draw(pipeline->pip_project_name,
+                   sdslen(pipeline->pip_project_name), &x, y, fg, bg);
+    ui_blank_draw(2 + table->tab_max_width_cols[col++] -
+                      sdslen(pipeline->pip_project_name),
+                  &x, y, fg, bg);
 
     ui_string_draw(pipeline->pip_vcs_ref, sdslen(pipeline->pip_vcs_ref), &x, y,
                    fg, bg);
