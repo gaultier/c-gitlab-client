@@ -36,16 +36,15 @@ typedef struct {
 typedef struct {
   i64 pro_id;
   sds pro_name, pro_path_with_namespace, pro_api_data;
-  pipeline_t *pro_pipelines;
 } project_t;
 
 typedef struct {
   sds base_url, token;
   u64 *project_ids;
-} args_t;
 
-project_t *projects = NULL;
-pthread_mutex_t projects_lock;
+  project_t *projects;
+  pipeline_t **pipelines;
+} args_t;
 
 static void args_init(args_t *args) {
   args->base_url = sdsempty();

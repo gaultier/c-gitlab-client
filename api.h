@@ -130,7 +130,7 @@ static void project_parse_pipelines_json(project_t *project) {
 
 static size_t write_cb(char *data, size_t n, size_t l, void *userp) {
   const i64 project_i = (i64)userp;
-  project_t *project = &projects[project_i];
+  project_t *project = &args.projects[project_i];
   project->pro_api_data = sdscatlen(project->pro_api_data, data, n * l);
 
   return n * l;
@@ -192,7 +192,7 @@ static void api_fetch(CURLM *cm) {
         curl_multi_remove_handle(cm, e);
         curl_easy_cleanup(e);
       } else {
-        project_t *project = &projects[project_i];
+        project_t *project = &args.projects[project_i];
         fprintf(stderr, "Failed to fetch from API: id=%lld err=%d\n",
                 project->pro_id, msg->msg);
       }
@@ -210,14 +210,14 @@ static void projects_fetch(const args_t *args) {
 
     project_t project = {0};
     project_init(&project, id);
-    buf_push(projects, project);
+    buf_push(args.projects, project);
     project_fetch_queue(cm, i, args);
   }
   api_fetch(cm);
   curl_multi_cleanup(cm);
 
   for (u64 i = 0; i < buf_size(args->project_ids); i++) {
-    project_t *project = &projects[i];
+    project_t *project = &args.projects[i];
     project_parse_json(project);
   }
 }
@@ -225,9 +225,9 @@ static void projects_fetch(const args_t *args) {
 static void pipelines_fetch(const args_t *args) {
   CURLM *cm = curl_multi_init();
 
-  for (u64 i = 0; i < buf_size(projects); i++) {
+  for (u64 i = 0; i < buf_size(args.projects); i++) {
     pthread_mutex_lock(&projects_lock);
-    sdsclear(projects[i].pro_api_data);
+    sdsclear(args.projects[i].pro_api_data);
     project_pipelines_fetch_queue(cm, i, args);
     pthread_mutex_unlock(&projects_lock);
   }
@@ -235,8 +235,8 @@ static void pipelines_fetch(const args_t *args) {
   api_fetch(cm);
   curl_multi_cleanup(cm);
 
-  for (u64 i = 0; i < buf_size(projects); i++) {
-    project_t *project = &projects[i];
+  for (u64 i = 0; i < buf_size(args.projects); i++) {
+    project_t *project = &args.projects[i];
     project_parse_pipelines_json(project);
   }
 }

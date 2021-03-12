@@ -64,7 +64,10 @@ int main(int argc, char* argv[]) {
     }
     buf_push(args.project_ids, id);
   }
-  buf_grow(projects, buf_size(args.project_ids));
+  buf_grow(args.projects, buf_size(args.project_ids));
+  pthread_mutex_t projects_lock;
+
+  buf_grow(args.pipelines, buf_size(args.project_ids));
 
   pthread_mutex_init(&projects_lock, NULL);
   projects_fetch(&args);
