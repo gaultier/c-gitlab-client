@@ -24,6 +24,11 @@ static void table_scroll_bottom(table_t* table) {
   table->tab_selected = buf_size(table->tab_pipelines) - 1;
 }
 
+static void table_resize(table_t* table) {
+  table->tab_h = tb_height() - 1;
+  table->tab_y = MAX(table->tab_y, table->tab_h);
+}
+
 static void table_set_pipelines(table_t* table) {
   buf_clear(table->tab_pipelines);
 
@@ -164,7 +169,8 @@ static void table_draw(table_t* table) {
     }
 
     ui_string_draw(pipeline->pip_project_path_with_namespace,
-                   sdslen(pipeline->pip_project_path_with_namespace), &x, y, fg, bg);
+                   sdslen(pipeline->pip_project_path_with_namespace), &x, y, fg,
+                   bg);
     ui_blank_draw(2 + table->tab_max_width_cols[col++] -
                       sdslen(pipeline->pip_project_path_with_namespace),
                   &x, y, fg, bg);
@@ -206,6 +212,7 @@ static void ui_draw() {
     switch (event.type) {
       case TB_EVENT_RESIZE:
         tb_clear();
+        table_resize(&table);
         table_draw(&table);
         tb_present();
         break;
