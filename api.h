@@ -72,7 +72,7 @@ static void project_parse_pipelines_json(project_t *project) {
     const jsmntok_t *const tok = &json_tokens[i];
     if (tok->type == JSMN_OBJECT) {
       pipeline_t pip;
-      pipeline_init(&pip, project->pro_name);
+      pipeline_init(&pip, project->pro_path_with_namespace);
       buf_push(project->pro_pipelines, pip);
       pipeline = &project->pro_pipelines[buf_size(project->pro_pipelines) - 1];
       continue;

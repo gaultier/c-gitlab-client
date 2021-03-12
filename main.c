@@ -75,7 +75,7 @@ int main(int argc, char* argv[]) {
   pipeline_t* pipelines1 = NULL;
   buf_push(pipelines1,
            ((pipeline_t){.pip_id = 1000000,
-                         .pip_project_name = proj_name_1,
+                         .pip_project_path_with_namespace = proj_name_1,
                          .pip_vcs_ref = sdsnew("git://gitlab.git"),
                          .pip_url = sdsnew(
                              "https://gitlab.com/bsd/freebsd/pipelines/100"),
@@ -84,7 +84,7 @@ int main(int argc, char* argv[]) {
                          .pip_status = sdsnew("pending")}));
   buf_push(pipelines1,
            ((pipeline_t){.pip_id = 101,
-                         .pip_project_name = proj_name_1,
+                         .pip_project_path_with_namespace = proj_name_1,
                          .pip_vcs_ref = sdsnew("git://gitlab.git"),
                          .pip_url = sdsnew(
                              "https://gitlab.com/bsd/freebsd/pipelines/101"),
@@ -93,7 +93,7 @@ int main(int argc, char* argv[]) {
                          .pip_status = sdsnew("succeeded")}));
   buf_push(pipelines1,
            ((pipeline_t){.pip_id = 102,
-                         .pip_project_name = proj_name_1,
+                         .pip_project_path_with_namespace = proj_name_1,
                          .pip_vcs_ref = sdsnew("git://gitlab.git"),
                          .pip_url = sdsnew(
                              "https://gitlab.com/bsd/freebsd/pipelines/102"),
@@ -102,7 +102,7 @@ int main(int argc, char* argv[]) {
                          .pip_status = sdsnew("succeeded")}));
   buf_push(pipelines1,
            ((pipeline_t){.pip_id = 103,
-                         .pip_project_name = proj_name_1,
+                         .pip_project_path_with_namespace = proj_name_1,
                          .pip_vcs_ref = sdsnew("git://gitlab.git"),
                          .pip_url = sdsnew(
                              "https://gitlab.com/bsd/freebsd/pipelines/103"),
@@ -111,7 +111,7 @@ int main(int argc, char* argv[]) {
                          .pip_status = sdsnew("succeeded")}));
   buf_push(pipelines1,
            ((pipeline_t){.pip_id = 104,
-                         .pip_project_name = proj_name_1,
+                         .pip_project_path_with_namespace = proj_name_1,
                          .pip_vcs_ref = sdsnew("git://gitlab.git"),
                          .pip_url = sdsnew(
                              "https://gitlab.com/bsd/freebsd/pipelines/104"),
@@ -120,7 +120,7 @@ int main(int argc, char* argv[]) {
                          .pip_status = sdsnew("succeeded")}));
   buf_push(pipelines1,
            ((pipeline_t){.pip_id = 105,
-                         .pip_project_name = proj_name_1,
+                         .pip_project_path_with_namespace = proj_name_1,
                          .pip_vcs_ref = sdsnew("git://gitlab.git"),
                          .pip_url = sdsnew(
                              "https://gitlab.com/bsd/freebsd/pipelines/105"),
@@ -129,7 +129,7 @@ int main(int argc, char* argv[]) {
                          .pip_status = sdsnew("succeeded")}));
   buf_push(pipelines1,
            ((pipeline_t){.pip_id = 106,
-                         .pip_project_name = proj_name_1,
+                         .pip_project_path_with_namespace = proj_name_1,
                          .pip_vcs_ref = sdsnew("git://gitlab.git"),
                          .pip_url = sdsnew(
                              "https://gitlab.com/bsd/freebsd/pipelines/106"),
@@ -138,8 +138,8 @@ int main(int argc, char* argv[]) {
                          .pip_status = sdsnew("succeeded")}));
   buf_push(pipelines1,
            ((pipeline_t){.pip_id = 107,
-                         .pip_project_name = proj_name_1,
-                         .pip_project_name = proj_name_1,
+                         .pip_project_path_with_namespace = proj_name_1,
+                         .pip_project_path_with_namespace = proj_name_1,
                          .pip_vcs_ref = sdsnew("git://gitlab.git"),
                          .pip_url = sdsnew(
                              "https://gitlab.com/bsd/freebsd/pipelines/107"),
@@ -148,7 +148,7 @@ int main(int argc, char* argv[]) {
                          .pip_status = sdsnew("succeeded")}));
   buf_push(pipelines1,
            ((pipeline_t){.pip_id = 108,
-                         .pip_project_name = proj_name_1,
+                         .pip_project_path_with_namespace = proj_name_1,
                          .pip_vcs_ref = sdsnew("git://gitlab.git"),
                          .pip_url = sdsnew(
                              "https://gitlab.com/bsd/freebsd/pipelines/108"),
@@ -157,7 +157,7 @@ int main(int argc, char* argv[]) {
                          .pip_status = sdsnew("succeeded")}));
   buf_push(pipelines1,
            ((pipeline_t){.pip_id = 109,
-                         .pip_project_name = proj_name_1,
+                         .pip_project_path_with_namespace = proj_name_1,
                          .pip_vcs_ref = sdsnew("git://gitlab.git"),
                          .pip_url = sdsnew(
                              "https://gitlab.com/bsd/freebsd/pipelines/109"),
@@ -166,7 +166,7 @@ int main(int argc, char* argv[]) {
                          .pip_status = sdsnew("succeeded")}));
   buf_push(pipelines1,
            ((pipeline_t){.pip_id = 110,
-                         .pip_project_name = proj_name_1,
+                         .pip_project_path_with_namespace = proj_name_1,
                          .pip_vcs_ref = sdsnew("git://gitlab.git"),
                          .pip_url = sdsnew(
                              "https://gitlab.com/bsd/freebsd/pipelines/110"),
@@ -175,7 +175,7 @@ int main(int argc, char* argv[]) {
                          .pip_status = sdsnew("succeeded")}));
   buf_push(pipelines1,
            ((pipeline_t){.pip_id = 111,
-                         .pip_project_name = proj_name_1,
+                         .pip_project_path_with_namespace = proj_name_1,
                          .pip_vcs_ref = sdsnew("git://gitlab.git"),
                          .pip_url = sdsnew(
                              "https://gitlab.com/bsd/freebsd/pipelines/111"),
@@ -184,7 +184,7 @@ int main(int argc, char* argv[]) {
                          .pip_status = sdsnew("succeeded")}));
   buf_push(pipelines1,
            ((pipeline_t){.pip_id = 112,
-                         .pip_project_name = proj_name_1,
+                         .pip_project_path_with_namespace = proj_name_1,
                          .pip_vcs_ref = sdsnew("git://gitlab.git"),
                          .pip_url = sdsnew(
                              "https://gitlab.com/bsd/freebsd/pipelines/112"),
@@ -193,7 +193,7 @@ int main(int argc, char* argv[]) {
                          .pip_status = sdsnew("succeeded")}));
   buf_push(pipelines1,
            ((pipeline_t){.pip_id = 113,
-                         .pip_project_name = proj_name_1,
+                         .pip_project_path_with_namespace = proj_name_1,
                          .pip_vcs_ref = sdsnew("git://gitlab.git"),
                          .pip_url = sdsnew(
                              "https://gitlab.com/bsd/freebsd/pipelines/113"),
@@ -202,7 +202,7 @@ int main(int argc, char* argv[]) {
                          .pip_status = sdsnew("succeeded")}));
   buf_push(pipelines1,
            ((pipeline_t){.pip_id = 114,
-                         .pip_project_name = proj_name_1,
+                         .pip_project_path_with_namespace = proj_name_1,
                          .pip_vcs_ref = sdsnew("git://gitlab.git"),
                          .pip_url = sdsnew(
                              "https://gitlab.com/bsd/freebsd/pipelines/114"),
@@ -211,7 +211,7 @@ int main(int argc, char* argv[]) {
                          .pip_status = sdsnew("succeeded")}));
   buf_push(pipelines1,
            ((pipeline_t){.pip_id = 115,
-                         .pip_project_name = proj_name_1,
+                         .pip_project_path_with_namespace = proj_name_1,
                          .pip_vcs_ref = sdsnew("git://gitlab.git"),
                          .pip_url = sdsnew(
                              "https://gitlab.com/bsd/freebsd/pipelines/115"),
@@ -220,7 +220,7 @@ int main(int argc, char* argv[]) {
                          .pip_status = sdsnew("succeeded")}));
   buf_push(pipelines1,
            ((pipeline_t){.pip_id = 116,
-                         .pip_project_name = proj_name_1,
+                         .pip_project_path_with_namespace = proj_name_1,
                          .pip_vcs_ref = sdsnew("git://gitlab.git"),
                          .pip_url = sdsnew(
                              "https://gitlab.com/bsd/freebsd/pipelines/116"),
@@ -229,7 +229,7 @@ int main(int argc, char* argv[]) {
                          .pip_status = sdsnew("succeeded")}));
   buf_push(pipelines1,
            ((pipeline_t){.pip_id = 117,
-                         .pip_project_name = proj_name_1,
+                         .pip_project_path_with_namespace = proj_name_1,
                          .pip_vcs_ref = sdsnew("git://gitlab.git"),
                          .pip_url = sdsnew(
                              "https://gitlab.com/bsd/freebsd/pipelines/117"),
@@ -238,7 +238,7 @@ int main(int argc, char* argv[]) {
                          .pip_status = sdsnew("succeeded")}));
   buf_push(pipelines1,
            ((pipeline_t){.pip_id = 118,
-                         .pip_project_name = proj_name_1,
+                         .pip_project_path_with_namespace = proj_name_1,
                          .pip_vcs_ref = sdsnew("git://gitlab.git"),
                          .pip_url = sdsnew(
                              "https://gitlab.com/bsd/freebsd/pipelines/118"),
@@ -247,7 +247,7 @@ int main(int argc, char* argv[]) {
                          .pip_status = sdsnew("succeeded")}));
   buf_push(pipelines1,
            ((pipeline_t){.pip_id = 119,
-                         .pip_project_name = proj_name_1,
+                         .pip_project_path_with_namespace = proj_name_1,
                          .pip_vcs_ref = sdsnew("git://gitlab.git"),
                          .pip_url = sdsnew(
                              "https://gitlab.com/bsd/freebsd/pipelines/119"),
@@ -256,7 +256,7 @@ int main(int argc, char* argv[]) {
                          .pip_status = sdsnew("succeeded")}));
   buf_push(pipelines1,
            ((pipeline_t){.pip_id = 120,
-                         .pip_project_name = proj_name_1,
+                         .pip_project_path_with_namespace = proj_name_1,
                          .pip_vcs_ref = sdsnew("git://gitlab.git"),
                          .pip_url = sdsnew(
                              "https://gitlab.com/bsd/freebsd/pipelines/120"),
@@ -273,7 +273,7 @@ int main(int argc, char* argv[]) {
   sds proj_name_2 = sdsnew("Apache");
   buf_push(pipelines2,
            ((pipeline_t){.pip_id = 201,
-                         .pip_project_name = proj_name_2,
+                         .pip_project_path_with_namespace = proj_name_2,
                          .pip_vcs_ref = sdsnew("git://gitlab.git"),
                          .pip_url = sdsnew(
                              "https://gitlab.com/bsd/freebsd/pipelines/201"),
@@ -282,7 +282,7 @@ int main(int argc, char* argv[]) {
                          .pip_status = sdsnew("failed")}));
   buf_push(pipelines2,
            ((pipeline_t){.pip_id = 20002,
-                         .pip_project_name = proj_name_2,
+                         .pip_project_path_with_namespace = proj_name_2,
                          .pip_vcs_ref = sdsnew("git://gitlab.git"),
                          .pip_url = sdsnew(
                              "https://gitlab.com/bsd/freebsd/pipelines/202"),

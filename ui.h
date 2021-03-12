@@ -36,7 +36,7 @@ static void table_set_pipelines(table_t* table) {
       int col = 0;
       table->tab_max_width_cols[col] =
           MAX(table->tab_max_width_cols[col],
-              (int)sdslen(pipeline->pip_project_name));
+              (int)sdslen(pipeline->pip_project_path_with_namespace));
       col++;
 
       table->tab_max_width_cols[col] = MAX(table->tab_max_width_cols[col],
@@ -163,10 +163,10 @@ static void table_draw(table_t* table) {
       bg = TB_BLUE;
     }
 
-    ui_string_draw(pipeline->pip_project_name,
-                   sdslen(pipeline->pip_project_name), &x, y, fg, bg);
+    ui_string_draw(pipeline->pip_project_path_with_namespace,
+                   sdslen(pipeline->pip_project_path_with_namespace), &x, y, fg, bg);
     ui_blank_draw(2 + table->tab_max_width_cols[col++] -
-                      sdslen(pipeline->pip_project_name),
+                      sdslen(pipeline->pip_project_path_with_namespace),
                   &x, y, fg, bg);
 
     ui_string_draw(pipeline->pip_vcs_ref, sdslen(pipeline->pip_vcs_ref), &x, y,

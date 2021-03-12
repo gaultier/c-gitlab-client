@@ -30,7 +30,7 @@ typedef uint16_t u16;
 typedef struct {
   i64 pip_id;
   sds pip_vcs_ref, pip_url, pip_created_at, pip_updated_at, pip_status,
-      pip_project_name;
+      pip_project_path_with_namespace;
 } pipeline_t;
 
 typedef struct {
@@ -53,5 +53,5 @@ static void pipeline_init(pipeline_t *pipeline, sds project_name) {
   pipeline->pip_created_at = sdsempty();
   pipeline->pip_updated_at = sdsempty();
   pipeline->pip_status = sdsempty();
-  pipeline->pip_project_name = project_name;
+  pipeline->pip_project_path_with_namespace = project_name;
 }
