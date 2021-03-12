@@ -35,13 +35,13 @@ static void project_parse_json(project_t *project) {
     jsmntok_t *const tok = &json_tokens[i];
     if (tok->type != JSMN_STRING) continue;
 
-    if (json_eq(s, tok, "name", sizeof("name") - 1) == 0) {
+    if (json_eq(s, tok, "name", LEN0("name")) == 0) {
       project->pro_name =
           sdscatlen(project->pro_name, s + json_tokens[i + 1].start,
                     json_tokens[i + 1].end - json_tokens[i + 1].start);
       i++;
     } else if (json_eq(s, tok, "path_with_namespace",
-                       sizeof("path_with_namespace") - 1) == 0) {
+                       LEN0("path_with_namespace")) == 0) {
       project->pro_path_with_namespace = sdscatlen(
           project->pro_path_with_namespace, s + json_tokens[i + 1].start,
           json_tokens[i + 1].end - json_tokens[i + 1].start);
@@ -78,7 +78,7 @@ static void project_parse_pipelines_json(project_t *project) {
       continue;
     }
 
-    if (json_eq(project->pro_api_data, tok, "id", sizeof("id") - 1) == 0) {
+    if (json_eq(project->pro_api_data, tok, "id", LEN0("id")) == 0) {
       const jsmntok_t *const t = &json_tokens[++i];
       const char *const value = project->pro_api_data + t->start;
       if (t->type != JSMN_PRIMITIVE) {
@@ -91,35 +91,33 @@ static void project_parse_pipelines_json(project_t *project) {
 
       pipeline->pip_id = strtoll(value, NULL, 10);
     }
-    if (json_eq(project->pro_api_data, tok, "ref", sizeof("ref") - 1) == 0) {
+    if (json_eq(project->pro_api_data, tok, "ref", LEN0("ref")) == 0) {
       const jsmntok_t *const t = &json_tokens[++i];
       const char *const value = project->pro_api_data + t->start;
       pipeline->pip_vcs_ref =
           sdscatlen(pipeline->pip_vcs_ref, value, t->end - t->start);
     }
-    if (json_eq(project->pro_api_data, tok, "created_at",
-                sizeof("created_at") - 1) == 0) {
+    if (json_eq(project->pro_api_data, tok, "created_at", LEN0("created_at")) ==
+        0) {
       const jsmntok_t *const t = &json_tokens[++i];
       const char *const value = project->pro_api_data + t->start;
       pipeline->pip_created_at =
           sdscatlen(pipeline->pip_created_at, value, t->end - t->start);
     }
-    if (json_eq(project->pro_api_data, tok, "updated_at",
-                sizeof("updated_at") - 1) == 0) {
+    if (json_eq(project->pro_api_data, tok, "updated_at", LEN0("updated_at")) ==
+        0) {
       const jsmntok_t *const t = &json_tokens[++i];
       const char *const value = project->pro_api_data + t->start;
       pipeline->pip_updated_at =
           sdscatlen(pipeline->pip_updated_at, value, t->end - t->start);
     }
-    if (json_eq(project->pro_api_data, tok, "status", sizeof("status") - 1) ==
-        0) {
+    if (json_eq(project->pro_api_data, tok, "status", LEN0("status")) == 0) {
       const jsmntok_t *const t = &json_tokens[++i];
       const char *const value = project->pro_api_data + t->start;
       pipeline->pip_status =
           sdscatlen(pipeline->pip_status, value, t->end - t->start);
     }
-    if (json_eq(project->pro_api_data, tok, "web_url", sizeof("web_url") - 1) ==
-        0) {
+    if (json_eq(project->pro_api_data, tok, "web_url", LEN0("web_url")) == 0) {
       const jsmntok_t *const t = &json_tokens[++i];
       const char *const value = project->pro_api_data + t->start;
       pipeline->pip_url =

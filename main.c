@@ -63,8 +63,6 @@ int main(int argc, char* argv[]) {
     buf_push(project_ids, id);
   }
 
-  ui_init();
-
 #ifndef TEST
   curl_global_init(CURL_GLOBAL_ALL);
 
@@ -299,5 +297,6 @@ int main(int argc, char* argv[]) {
                      }));
 #endif
 
+  ui_init();
   ui_draw();
 }
