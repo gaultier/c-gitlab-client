@@ -37,14 +37,14 @@ static void project_parse_json(project_t *project) {
 
     if (json_eq(s, tok, "name", sizeof("name") - 1) == 0) {
       project->pro_name =
-          sdsnewlen(s + json_tokens[i + 1].start,
+          sdscatlen(project->pro_name, s + json_tokens[i + 1].start,
                     json_tokens[i + 1].end - json_tokens[i + 1].start);
       i++;
     } else if (json_eq(s, tok, "path_with_namespace",
                        sizeof("path_with_namespace") - 1) == 0) {
-      project->pro_path_with_namespace =
-          sdsnewlen(s + json_tokens[i + 1].start,
-                    json_tokens[i + 1].end - json_tokens[i + 1].start);
+      project->pro_path_with_namespace = sdscatlen(
+          project->pro_path_with_namespace, s + json_tokens[i + 1].start,
+          json_tokens[i + 1].end - json_tokens[i + 1].start);
       i++;
     }
   }
@@ -69,9 +69,10 @@ static void project_parse_pipelines_json(project_t *project) {
   for (i64 i = 1; i < res; i++) {
     const jsmntok_t *const tok = &json_tokens[i];
     if (tok->type == JSMN_OBJECT) {
-      buf_push(project->pro_pipelines, ((pipeline_t){0}));
+      pipeline_t pip;
+      pipeline_init(&pip, project->pro_name);
+      buf_push(project->pro_pipelines, pip);
       pipeline = &project->pro_pipelines[buf_size(project->pro_pipelines) - 1];
-      pipeline->pip_project_name = project->pro_name;
       continue;
     }
 
@@ -89,31 +90,36 @@ static void project_parse_pipelines_json(project_t *project) {
     if (json_eq(project->pro_api_data, tok, "ref", sizeof("ref") - 1) == 0) {
       const jsmntok_t *const t = &json_tokens[++i];
       const char *const value = project->pro_api_data + t->start;
-      pipeline->pip_vcs_ref = sdsnewlen(value, t->end - t->start);
+      pipeline->pip_vcs_ref =
+          sdscatlen(pipeline->pip_vcs_ref, value, t->end - t->start);
     }
     if (json_eq(project->pro_api_data, tok, "created_at",
                 sizeof("created_at") - 1) == 0) {
       const jsmntok_t *const t = &json_tokens[++i];
       const char *const value = project->pro_api_data + t->start;
-      pipeline->pip_created_at = sdsnewlen(value, t->end - t->start);
+      pipeline->pip_created_at =
+          sdscatlen(pipeline->pip_created_at, value, t->end - t->start);
     }
     if (json_eq(project->pro_api_data, tok, "updated_at",
                 sizeof("updated_at") - 1) == 0) {
       const jsmntok_t *const t = &json_tokens[++i];
       const char *const value = project->pro_api_data + t->start;
-      pipeline->pip_updated_at = sdsnewlen(value, t->end - t->start);
+      pipeline->pip_updated_at =
+          sdscatlen(pipeline->pip_updated_at, value, t->end - t->start);
     }
     if (json_eq(project->pro_api_data, tok, "status", sizeof("status") - 1) ==
         0) {
       const jsmntok_t *const t = &json_tokens[++i];
       const char *const value = project->pro_api_data + t->start;
-      pipeline->pip_status = sdsnewlen(value, t->end - t->start);
+      pipeline->pip_status =
+          sdscatlen(pipeline->pip_status, value, t->end - t->start);
     }
     if (json_eq(project->pro_api_data, tok, "web_url", sizeof("web_url") - 1) ==
         0) {
       const jsmntok_t *const t = &json_tokens[++i];
       const char *const value = project->pro_api_data + t->start;
-      pipeline->pip_url = sdsnewlen(value, t->end - t->start);
+      pipeline->pip_url =
+          sdscatlen(pipeline->pip_url, value, t->end - t->start);
     }
   }
 }
@@ -148,6 +154,15 @@ static void project_fetch_queue(CURLM *cm, int i, uint64_t *project_ids,
 
 static void project_pipelines_fetch_queue(CURLM *cm, int i, u64 *project_ids,
                                           char *base_url, char *token) {
+  static char url[4097];
+  memset(url, 0, sizeof(url));
+  if (token)
+    snprintf(url, LEN0(url),
+             "%s/api/v4/projects/%llu/pipelines?private_token=%s", base_url,
+             project_ids[i], token);
+  else
+    snprintf(url, LEN0(url), "%s/api/v4/projects/%llu/pipelines", base_url,
+             project_ids[i]);
   CURL *eh = curl_easy_init();
   curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, write_cb);
   curl_easy_setopt(eh, CURLOPT_URL, projects[i].pro_api_pipelines_url);

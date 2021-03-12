@@ -48,3 +48,13 @@ static void project_init(project_t *project, i64 id) {
   project->pro_api_pipelines_url = sdscatprintf(
       sdsempty(), "https://gitlab.com/api/v4/projects/%lld/pipelines", id);
 }
+
+static void pipeline_init(pipeline_t *pipeline, sds project_name) {
+  pipeline->pip_id = 0;
+  pipeline->pip_vcs_ref = sdsempty();
+  pipeline->pip_url = sdsempty();
+  pipeline->pip_created_at = sdsempty();
+  pipeline->pip_updated_at = sdsempty();
+  pipeline->pip_status = sdsempty();
+  pipeline->pip_project_name = project_name;
+}
