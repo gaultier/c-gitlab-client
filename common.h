@@ -35,18 +35,15 @@ typedef struct {
 
 typedef struct {
   i64 pro_id;
-  sds pro_name, pro_path_with_namespace, pro_api_url, pro_api_data,
-      pro_api_pipelines_url;
+  sds pro_name, pro_path_with_namespace, pro_api_data;
   pipeline_t *pro_pipelines;
 } project_t;
 
 static void project_init(project_t *project, i64 id) {
   project->pro_id = id;
-  project->pro_api_url =
-      sdscatprintf(sdsempty(), "https://gitlab.com/api/v4/projects/%lld", id);
+  project->pro_name = sdsempty();
+  project->pro_path_with_namespace = sdsempty();
   project->pro_api_data = sdsempty();
-  project->pro_api_pipelines_url = sdscatprintf(
-      sdsempty(), "https://gitlab.com/api/v4/projects/%lld/pipelines", id);
 }
 
 static void pipeline_init(pipeline_t *pipeline, sds project_name) {

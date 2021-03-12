@@ -60,8 +60,10 @@ static void project_parse_pipelines_json(project_t *project) {
   int res = jsmn_parse(&parser, s, sdslen((char *)s), json_tokens,
                        sdslen(project->pro_api_data));
   if (res <= 0 || json_tokens[0].type != JSMN_ARRAY) {
-    fprintf(stderr, "%s:%d:Malformed JSON for project: id=%lld\n", __FILE__,
-            __LINE__, project->pro_id);
+    fprintf(stderr,
+            "%s:%d:Malformed JSON for project pipelines: id=%lld res=%d "
+            "json=`%s`\n",
+            __FILE__, __LINE__, project->pro_id, res, project->pro_api_data);
     return;
   }
 
@@ -80,8 +82,10 @@ static void project_parse_pipelines_json(project_t *project) {
       const jsmntok_t *const t = &json_tokens[++i];
       const char *const value = project->pro_api_data + t->start;
       if (t->type != JSMN_PRIMITIVE) {
-        fprintf(stderr, "%s:%d:Malformed JSON for project: id=%lld\n", __FILE__,
-                __LINE__, project->pro_id);
+        fprintf(
+            stderr,
+            "%s:%d:Malformed JSON for project id: id=%lld res=%d json=`%s`\n",
+            __FILE__, __LINE__, project->pro_id, res, project->pro_api_data);
         return;
       }
 
@@ -165,7 +169,7 @@ static void project_pipelines_fetch_queue(CURLM *cm, int i, u64 *project_ids,
              project_ids[i]);
   CURL *eh = curl_easy_init();
   curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, write_cb);
-  curl_easy_setopt(eh, CURLOPT_URL, projects[i].pro_api_pipelines_url);
+  curl_easy_setopt(eh, CURLOPT_URL, url);
   curl_easy_setopt(eh, CURLOPT_WRITEDATA, i);
   curl_easy_setopt(eh, CURLOPT_PRIVATE, i);
   curl_multi_add_handle(cm, eh);
