@@ -3,6 +3,7 @@
 #include <pthread.h>
 
 #include "common.h"
+#include "ui.h"
 
 jsmntok_t *json_tokens;
 
@@ -247,6 +248,7 @@ static void *fetch(void *v_args) {
   for (;;) {
     buf_trunc(json_tokens, 10 * 1024);  // 10 KiB
     pipelines_fetch(args);
+    table_set_pipelines(&table);
     sleep(5);
   }
   return NULL;

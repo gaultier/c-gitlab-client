@@ -13,10 +13,11 @@ typedef struct {
   pipeline_t* tab_pipelines;
 } table_t;
 
-static table_t table_init() {
-  table_t table = {.tab_max_width_cols = {[2] = 9, [3] = 9},
-                   .tab_h = tb_height() - 1};  // -1 for header
-  return table;
+table_t table;
+
+static void table_init() {
+  table = (table_t){.tab_max_width_cols = {[2] = 9, [3] = 9},
+                    .tab_h = tb_height() - 1};  // -1 for header
 }
 
 static void table_scroll_top(table_t* table) {
@@ -34,9 +35,8 @@ static void table_resize(table_t* table) {
 }
 
 static void table_set_pipelines(table_t* table) {
-  buf_clear(table->tab_pipelines);
-
   pthread_mutex_lock(&projects_lock);
+  buf_clear(table->tab_pipelines);
   for (int i = 0; i < (int)buf_size(projects); i++) {
     project_t* project = &projects[i];
 
@@ -156,6 +156,7 @@ static void table_header_draw(table_t* table) {
 }
 
 static void table_draw(table_t* table) {
+  pthread_mutex_lock(&projects_lock);
   table_header_draw(table);
 
   time_t now_epoch = time(NULL);
@@ -203,10 +204,11 @@ static void table_draw(table_t* table) {
     ui_string_draw(status, table->tab_max_width_cols[col++], &x, y, fg, bg);
     ui_blank_draw(2, &x, y, fg, bg);
   }
+  pthread_mutex_unlock(&projects_lock);
 }
 
 static void ui_draw() {
-  table_t table = table_init();
+  table_init();
   table_set_pipelines(&table);
 
   tb_clear();
