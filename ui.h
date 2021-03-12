@@ -66,7 +66,7 @@ static int ui_iso_date_to_short_time(const sds date, const struct tm* now,
                     .tm_mon = now->tm_mon - time.tm_mon,
                     .tm_mday = now->tm_mday - time.tm_mday,
                     .tm_hour = now->tm_hour - time.tm_hour,
-                    .tm_min = now->tm_hour - time.tm_hour,
+                    .tm_min = now->tm_min - time.tm_min,
                     .tm_sec = now->tm_sec - time.tm_sec};
 
   if (diff.tm_year > 100)
