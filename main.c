@@ -7,22 +7,33 @@
 
 static void help_print(char* program_name) {
   printf(
-      "Usage: %s (--url|-u url) project_id ...\n\n"
-      "  --url url The url where gitlab resides, e.g. `https://gitlab.com`",
+      // clang-format off
+      "Usage: %s [options...] project_id...\n\n"
+      "  -u, --url <url>    The url where gitlab resides, e.g. `https://gitlab.com`\n"
+      "  -t, --token Private Gitlab token. Do not share this with others\n"
+      "  -h, --help Show this message\n"
+      // clang-format on
+      ,
       program_name);
 }
 
 int main(int argc, char* argv[]) {
   char* argv0 = argv[0];
 
-  char* url = NULL;
+  char *url = NULL, *token = NULL;
+
   struct option options[] = {
-      {.name = "url", .has_arg = required_argument, .val = 'u'}, {0}};
+      {.name = "token", .has_arg = optional_argument, .val = 't'},
+      {.name = "url", .has_arg = required_argument, .val = 'u'},
+      {0}};
   int index = 0, ch = 0;
-  while ((ch = getopt_long(argc, argv, "hu:", options, &index)) != -1) {
+  while ((ch = getopt_long(argc, argv, "ht:u:", options, &index)) != -1) {
     switch (ch) {
       case 'u':
         url = optarg;
+        break;
+      case 't':
+        token = optarg;
         break;
       case 'h':
       case '?':
@@ -40,7 +51,7 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  i64* project_ids = NULL;
+  u64* project_ids = NULL;
   for (int i = 0; i < argc; i++) {
     char* end = NULL;
     uint64_t id = strtoull(argv[i], &end, 10);
@@ -59,8 +70,8 @@ int main(int argc, char* argv[]) {
 
   buf_trunc(json_tokens, 10 * 1024);  // 10 KiB
 
-  projects_fetch(project_ids);
-  pipelines_fetch();
+  projects_fetch(project_ids, url, token);
+  pipelines_fetch(project_ids, url, token);
 #else
   sds proj_name_1 = sdsnew("Nginx");
   pipeline_t* pipelines1 = NULL;

@@ -1,4 +1,6 @@
 #pragma once
+#include <stdint.h>
+
 #include "common.h"
 
 jsmntok_t *json_tokens;
@@ -124,16 +126,27 @@ static size_t write_cb(char *data, size_t n, size_t l, void *userp) {
   return n * l;
 }
 
-static void project_fetch_queue(CURLM *cm, int i) {
+static void project_fetch_queue(CURLM *cm, int i, uint64_t *project_ids,
+                                char *base_url, char *token) {
+  static char url[4097];
+  memset(url, 0, sizeof(url));
+  if (token)
+    snprintf(url, LEN0(url),
+             "%s/api/v4/projects/%llu?simple=true&private_token=%s", base_url,
+             project_ids[i], token);
+  else
+    snprintf(url, LEN0(url), "%s/%llu", base_url, project_ids[i]);
+
   CURL *eh = curl_easy_init();
   curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, write_cb);
-  curl_easy_setopt(eh, CURLOPT_URL, projects[i].pro_api_url);
+  curl_easy_setopt(eh, CURLOPT_URL, url);
   curl_easy_setopt(eh, CURLOPT_WRITEDATA, i);
   curl_easy_setopt(eh, CURLOPT_PRIVATE, i);
   curl_multi_add_handle(cm, eh);
 }
 
-static void project_pipelines_fetch_queue(CURLM *cm, int i) {
+static void project_pipelines_fetch_queue(CURLM *cm, int i, u64 *project_ids,
+                                          char *base_url, char *token) {
   CURL *eh = curl_easy_init();
   curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, write_cb);
   curl_easy_setopt(eh, CURLOPT_URL, projects[i].pro_api_pipelines_url);
@@ -170,7 +183,7 @@ static void api_fetch(CURLM *cm) {
   } while (still_alive);
 }
 
-static void projects_fetch(i64 *project_ids) {
+static void projects_fetch(u64 *project_ids, char *base_url, char *token) {
   CURLM *cm = curl_multi_init();
 
   for (u64 i = 0; i < buf_size(project_ids); i++) {
@@ -179,7 +192,7 @@ static void projects_fetch(i64 *project_ids) {
     project_t project = {0};
     project_init(&project, id);
     buf_push(projects, project);
-    project_fetch_queue(cm, i);
+    project_fetch_queue(cm, i, project_ids, base_url, token);
   }
   api_fetch(cm);
   curl_multi_cleanup(cm);
@@ -190,12 +203,12 @@ static void projects_fetch(i64 *project_ids) {
   }
 }
 
-static void pipelines_fetch() {
+static void pipelines_fetch(u64 *project_ids, char *base_url, char *token) {
   CURLM *cm = curl_multi_init();
 
   for (u64 i = 0; i < buf_size(projects); i++) {
     sdsclear(projects[i].pro_api_data);
-    project_pipelines_fetch_queue(cm, i);
+    project_pipelines_fetch_queue(cm, i, project_ids, base_url, token);
   }
 
   api_fetch(cm);
