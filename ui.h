@@ -1,5 +1,8 @@
 #pragma once
 
+#include <pthread.h>
+
+#include "common.h"
 #include "deps/termbox/src/termbox.c"
 #include "deps/termbox/src/termbox.h"
 #include "deps/termbox/src/utf8.c"
@@ -7,13 +10,14 @@
 typedef struct {
   int tab_max_width_cols[5];
   int tab_y, tab_h, tab_selected;
-  const pipeline_t** tab_pipelines;
-
+  pipeline_t* tab_pipelines;
+  pthread_mutex_t tab_projects_lock;
 } table_t;
 
 static table_t table_init() {
   table_t table = {.tab_max_width_cols = {[2] = 9, [3] = 9},
                    .tab_h = tb_height() - 1};  // -1 for header
+  pthread_mutex_init(&table.tab_projects_lock, NULL);
   return table;
 }
 
@@ -34,11 +38,12 @@ static void table_resize(table_t* table) {
 static void table_set_pipelines(table_t* table) {
   buf_clear(table->tab_pipelines);
 
+  pthread_mutex_lock(&table->tab_projects_lock);
   for (int i = 0; i < (int)buf_size(projects); i++) {
-    const project_t* const project = &projects[i];
+    project_t* project = &projects[i];
 
     for (int j = 0; j < (int)buf_size(project->pro_pipelines); j++) {
-      const pipeline_t* const pipeline = &project->pro_pipelines[j];
+      pipeline_t* pipeline = &project->pro_pipelines[j];
 
       int col = 0;
       table->tab_max_width_cols[col] =
@@ -52,9 +57,10 @@ static void table_set_pipelines(table_t* table) {
       table->tab_max_width_cols[col] = MAX(table->tab_max_width_cols[col],
                                            (int)sdslen(pipeline->pip_status));
 
-      buf_push(table->tab_pipelines, pipeline);
+      buf_push(table->tab_pipelines, *pipeline);
     }
   }
+  pthread_mutex_unlock(&table->tab_projects_lock);
 }
 
 static void ui_init() {
@@ -162,7 +168,7 @@ static void table_draw(table_t* table) {
     int p = i + table->tab_y, y = i + 1, x = 0, col = 0;
 
     if (p >= (int)buf_size(table->tab_pipelines)) return;
-    const pipeline_t* const pipeline = table->tab_pipelines[p];
+    const pipeline_t* const pipeline = &table->tab_pipelines[p];
 
     int fg = TB_BLUE, bg = TB_DEFAULT;
     if (table->tab_selected == p) {

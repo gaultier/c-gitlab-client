@@ -39,6 +39,16 @@ typedef struct {
   pipeline_t *pro_pipelines;
 } project_t;
 
+typedef struct {
+  sds base_url, token;
+  u64 *project_ids;
+} args_t;
+
+static void args_init(args_t *args) {
+  args->base_url = sdsempty();
+  args->token = sdsempty();
+}
+
 static void project_init(project_t *project, i64 id) {
   project->pro_id = id;
   project->pro_name = sdsempty();
@@ -53,5 +63,5 @@ static void pipeline_init(pipeline_t *pipeline, sds project_name) {
   pipeline->pip_created_at = sdsempty();
   pipeline->pip_updated_at = sdsempty();
   pipeline->pip_status = sdsempty();
-  pipeline->pip_project_path_with_namespace = project_name;
+  pipeline->pip_project_path_with_namespace = sdsdup(project_name);
 }
