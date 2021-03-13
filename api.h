@@ -1,12 +1,16 @@
 #pragma once
 
-#include <pthread.h>
-
 #include "common.h"
 #include "deps/lstack/lstack.h"
-#include "ui.h"
 
-jsmntok_t *json_tokens;
+typedef struct {
+  int i;
+  args_t *args;
+} curl_cb_data_t;
+
+static jsmntok_t *json_tokens;
+static char url[4097];
+static curl_cb_data_t data = {0};
 
 static int json_eq(const char *json, const jsmntok_t *tok, const char *s,
                    u64 s_len) {
@@ -129,16 +133,18 @@ static void project_parse_pipelines_json(project_t *project,
 }
 
 static size_t write_cb(char *data, size_t n, size_t l, void *userp) {
-  const i64 project_i = (i64)userp;
-  project_t *project = &args.projects[project_i];
+  const curl_cb_data_t *const curl_cb_data = userp;
+  project_t *project = &curl_cb_data->args->projects[curl_cb_data->i];
   project->pro_api_data = sdscatlen(project->pro_api_data, data, n * l);
 
   return n * l;
 }
 
-static void project_fetch_queue(CURLM *cm, int i, const args_t *args) {
-  static char url[4097];
+static void project_fetch_queue(CURLM *cm, int i, args_t *args) {
   memset(url, 0, sizeof(url));
+  data.i = i;
+  data.args = args;
+
   if (args->token)
     snprintf(url, LEN0(url),
              "%s/api/v4/projects/%llu?simple=true&private_token=%s",
@@ -149,16 +155,17 @@ static void project_fetch_queue(CURLM *cm, int i, const args_t *args) {
 
   CURL *eh = curl_easy_init();
   curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, write_cb);
+  curl_easy_setopt(eh, CURLOPT_WRITEDATA, &data);
   curl_easy_setopt(eh, CURLOPT_URL, url);
-  curl_easy_setopt(eh, CURLOPT_WRITEDATA, i);
   curl_easy_setopt(eh, CURLOPT_PRIVATE, i);
   curl_multi_add_handle(cm, eh);
 }
 
-static void project_pipelines_fetch_queue(CURLM *cm, int i,
-                                          const args_t *args) {
-  static char url[4097];
+static void project_pipelines_fetch_queue(CURLM *cm, int i, args_t *args) {
   memset(url, 0, sizeof(url));
+  data.i = i;
+  data.args = args;
+
   if (args->token)
     snprintf(url, LEN0(url),
              "%s/api/v4/projects/%llu/pipelines?private_token=%s",
@@ -169,12 +176,12 @@ static void project_pipelines_fetch_queue(CURLM *cm, int i,
   CURL *eh = curl_easy_init();
   curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, write_cb);
   curl_easy_setopt(eh, CURLOPT_URL, url);
-  curl_easy_setopt(eh, CURLOPT_WRITEDATA, i);
+  curl_easy_setopt(eh, CURLOPT_WRITEDATA, &data);
   curl_easy_setopt(eh, CURLOPT_PRIVATE, i);
   curl_multi_add_handle(cm, eh);
 }
 
-static void api_fetch(CURLM *cm) {
+static void api_fetch(CURLM *cm, args_t *args) {
   int still_alive = 1;
   int msgs_left = -1;
   do {
@@ -192,7 +199,7 @@ static void api_fetch(CURLM *cm) {
         curl_multi_remove_handle(cm, e);
         curl_easy_cleanup(e);
       } else {
-        project_t *project = &args.projects[project_i];
+        project_t *project = &args->projects[project_i];
         fprintf(stderr, "Failed to fetch from API: id=%lld err=%d\n",
                 project->pro_id, msg->msg);
       }
@@ -213,7 +220,7 @@ static void projects_fetch(args_t *args) {
     buf_push(args->projects, project);
     project_fetch_queue(cm, i, args);
   }
-  api_fetch(cm);
+  api_fetch(cm, args);
   curl_multi_cleanup(cm);
 
   for (u64 i = 0; i < buf_size(args->project_ids); i++) {
@@ -222,7 +229,7 @@ static void projects_fetch(args_t *args) {
   }
 }
 
-static pipeline_t *pipelines_fetch(const args_t *args) {
+static pipeline_t *pipelines_fetch(args_t *args) {
   CURLM *cm = curl_multi_init();
 
   for (u64 i = 0; i < buf_size(args->projects); i++) {
@@ -230,7 +237,7 @@ static pipeline_t *pipelines_fetch(const args_t *args) {
     project_pipelines_fetch_queue(cm, i, args);
   }
 
-  api_fetch(cm);
+  api_fetch(cm, args);
   curl_multi_cleanup(cm);
 
   pipeline_t *pipelines = NULL;
@@ -249,7 +256,6 @@ static void *fetch(void *v_args) {
     buf_trunc(json_tokens, 10 * 1024);  // 10 KiB
     pipeline_t *pipelines = pipelines_fetch(args);
     lstack_push(&args->pipelines, pipelines);
-    table_set_pipelines(&table);
     sleep(5);
   }
   return NULL;

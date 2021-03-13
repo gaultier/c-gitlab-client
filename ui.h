@@ -32,13 +32,11 @@ static void table_resize(table_t* table) {
   table->tab_y = MAX(table->tab_y, table->tab_h);
 }
 
-static void table_set_pipelines(table_t* table) {
-  buf_clear(table->tab_pipelines);
-  for (int i = 0; i < (int)buf_size(projects); i++) {
-    project_t* project = &projects[i];
-
-    for (int j = 0; j < (int)buf_size(project->pro_pipelines); j++) {
-      pipeline_t* pipeline = &project->pro_pipelines[j];
+static void table_pull_pipelines(table_t* table, args_t* args) {
+  pipeline_t* pipelines = NULL;
+  while ((pipelines = lstack_pop(&args->pipelines))) {
+    for (int j = 0; j < (int)buf_size(pipelines); j++) {
+      pipeline_t* pipeline = &pipelines[j];
 
       int col = 0;
       table->tab_max_width_cols[col] =
@@ -201,9 +199,9 @@ static void table_draw(table_t* table) {
   }
 }
 
-static void ui_draw() {
+static void ui_draw(args_t* args) {
   table_init();
-  table_set_pipelines(&table);
+  table_set_pipelines(&table, args);
 
   tb_clear();
   table_draw(&table);
