@@ -1,7 +1,5 @@
 #pragma once
 
-#include <pthread.h>
-
 #include "common.h"
 #include "deps/termbox/src/termbox.c"
 #include "deps/termbox/src/termbox.h"
@@ -35,7 +33,6 @@ static void table_resize(table_t* table) {
 }
 
 static void table_set_pipelines(table_t* table) {
-  pthread_mutex_lock(&projects_lock);
   buf_clear(table->tab_pipelines);
   for (int i = 0; i < (int)buf_size(projects); i++) {
     project_t* project = &projects[i];
@@ -58,7 +55,6 @@ static void table_set_pipelines(table_t* table) {
       buf_push(table->tab_pipelines, *pipeline);
     }
   }
-  pthread_mutex_unlock(&projects_lock);
 }
 
 static void ui_init() {
@@ -156,7 +152,6 @@ static void table_header_draw(table_t* table) {
 }
 
 static void table_draw(table_t* table) {
-  pthread_mutex_lock(&projects_lock);
   table_header_draw(table);
 
   time_t now_epoch = time(NULL);
@@ -204,7 +199,6 @@ static void table_draw(table_t* table) {
     ui_string_draw(status, table->tab_max_width_cols[col++], &x, y, fg, bg);
     ui_blank_draw(2, &x, y, fg, bg);
   }
-  pthread_mutex_unlock(&projects_lock);
 }
 
 static void ui_draw() {

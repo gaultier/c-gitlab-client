@@ -3,6 +3,7 @@
 #include <pthread.h>
 
 #include "common.h"
+#include "deps/lstack/lstack.h"
 #include "ui.h"
 
 jsmntok_t *json_tokens;
@@ -50,7 +51,8 @@ static void project_parse_json(project_t *project) {
   }
 }
 
-static void project_parse_pipelines_json(project_t *project) {
+static void project_parse_pipelines_json(project_t *project,
+                                         pipeline_t **pipelines) {
   buf_clear(json_tokens);
 
   jsmn_parser parser;
@@ -68,14 +70,13 @@ static void project_parse_pipelines_json(project_t *project) {
   }
 
   pipeline_t *pipeline = NULL;
-  pthread_mutex_lock(&projects_lock);
   for (i64 i = 1; i < res; i++) {
     const jsmntok_t *const tok = &json_tokens[i];
     if (tok->type == JSMN_OBJECT) {
       pipeline_t pip;
       pipeline_init(&pip, project->pro_path_with_namespace);
-      buf_push(project->pro_pipelines, pip);
-      pipeline = &project->pro_pipelines[buf_size(project->pro_pipelines) - 1];
+      buf_push(*pipelines, pip);
+      pipeline = &(*pipelines)[buf_size(pipelines) - 1];
       continue;
     }
 
@@ -125,7 +126,6 @@ static void project_parse_pipelines_json(project_t *project) {
           sdscatlen(pipeline->pip_url, value, t->end - t->start);
     }
   }
-  pthread_mutex_unlock(&projects_lock);
 }
 
 static size_t write_cb(char *data, size_t n, size_t l, void *userp) {
@@ -202,7 +202,7 @@ static void api_fetch(CURLM *cm) {
   } while (still_alive);
 }
 
-static void projects_fetch(const args_t *args) {
+static void projects_fetch(args_t *args) {
   CURLM *cm = curl_multi_init();
 
   for (u64 i = 0; i < buf_size(args->project_ids); i++) {
@@ -210,35 +210,35 @@ static void projects_fetch(const args_t *args) {
 
     project_t project = {0};
     project_init(&project, id);
-    buf_push(args.projects, project);
+    buf_push(args->projects, project);
     project_fetch_queue(cm, i, args);
   }
   api_fetch(cm);
   curl_multi_cleanup(cm);
 
   for (u64 i = 0; i < buf_size(args->project_ids); i++) {
-    project_t *project = &args.projects[i];
+    project_t *project = &args->projects[i];
     project_parse_json(project);
   }
 }
 
-static void pipelines_fetch(const args_t *args) {
+static pipeline_t *pipelines_fetch(const args_t *args) {
   CURLM *cm = curl_multi_init();
 
-  for (u64 i = 0; i < buf_size(args.projects); i++) {
-    pthread_mutex_lock(&projects_lock);
-    sdsclear(args.projects[i].pro_api_data);
+  for (u64 i = 0; i < buf_size(args->projects); i++) {
+    sdsclear(args->projects[i].pro_api_data);
     project_pipelines_fetch_queue(cm, i, args);
-    pthread_mutex_unlock(&projects_lock);
   }
 
   api_fetch(cm);
   curl_multi_cleanup(cm);
 
-  for (u64 i = 0; i < buf_size(args.projects); i++) {
-    project_t *project = &args.projects[i];
-    project_parse_pipelines_json(project);
+  pipeline_t *pipelines = NULL;
+  for (u64 i = 0; i < buf_size(args->projects); i++) {
+    project_t *project = &args->projects[i];
+    project_parse_pipelines_json(project, &pipelines);
   }
+  return pipelines;
 }
 
 static void *fetch(void *v_args) {
@@ -247,7 +247,8 @@ static void *fetch(void *v_args) {
 
   for (;;) {
     buf_trunc(json_tokens, 10 * 1024);  // 10 KiB
-    pipelines_fetch(args);
+    pipeline_t *pipelines = pipelines_fetch(args);
+    lstack_push(&args->pipelines, pipelines);
     table_set_pipelines(&table);
     sleep(5);
   }

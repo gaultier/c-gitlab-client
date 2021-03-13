@@ -9,6 +9,7 @@
 
 #include "deps/buf/buf.h"
 #include "deps/jsmn/jsmn.h"
+#include "deps/lstack/lstack.h"
 #include "deps/sds/sds.c"
 #include "deps/sds/sds.h"
 #include "deps/sds/sdsalloc.h"
@@ -43,12 +44,13 @@ typedef struct {
   u64 *project_ids;
 
   project_t *projects;
-  pipeline_t **pipelines;
+  lstack_t pipelines;
 } args_t;
 
 static void args_init(args_t *args) {
   args->base_url = sdsempty();
   args->token = sdsempty();
+  lstack_init(&args->pipelines, 500);
 }
 
 static void project_init(project_t *project, i64 id) {
