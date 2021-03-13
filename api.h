@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.h"
+#include "deps/lstack/lstack.c"
 #include "deps/lstack/lstack.h"
 
 typedef struct {

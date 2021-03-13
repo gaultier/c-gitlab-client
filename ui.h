@@ -201,7 +201,7 @@ static void table_draw(table_t* table) {
 
 static void ui_draw(args_t* args) {
   table_init();
-  table_set_pipelines(&table, args);
+  table_pull_pipelines(&table, args);
 
   tb_clear();
   table_draw(&table);
