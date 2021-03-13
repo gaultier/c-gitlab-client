@@ -201,6 +201,7 @@ static void table_draw(table_t* table) {
 
 static void ui_draw(args_t* args) {
   table_init();
+
   table_pull_pipelines(&table, args);
 
   tb_clear();
@@ -209,6 +210,8 @@ static void ui_draw(args_t* args) {
 
   struct tb_event event;
   while (tb_poll_event(&event)) {
+    table_pull_pipelines(&table, args);
+
     switch (event.type) {
       case TB_EVENT_RESIZE:
         tb_clear();
