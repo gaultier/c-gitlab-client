@@ -22,7 +22,6 @@ static void help_print(char* program_name) {
 int main(int argc, char* argv[]) {
   char* argv0 = argv[0];
 
-  args_t args = {0};
   args_init(&args);
 
   struct option options[] = {

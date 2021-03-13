@@ -4,14 +4,8 @@
 #include "deps/lstack/lstack.c"
 #include "deps/lstack/lstack.h"
 
-typedef struct {
-  int i;
-  args_t *args;
-} curl_cb_data_t;
-
 static jsmntok_t *json_tokens;
 static char url[4097];
-static curl_cb_data_t data = {0};
 
 static int json_eq(const char *json, const jsmntok_t *tok, const char *s,
                    u64 s_len) {
@@ -134,8 +128,8 @@ static void project_parse_pipelines_json(project_t *project,
 }
 
 static size_t write_cb(char *data, size_t n, size_t l, void *userp) {
-  const curl_cb_data_t *const curl_cb_data = userp;
-  project_t *project = &curl_cb_data->args->projects[curl_cb_data->i];
+  i64 i = (i64)userp;
+  project_t *project = &args.projects[i];
   project->pro_api_data = sdscatlen(project->pro_api_data, data, n * l);
 
   return n * l;
@@ -143,8 +137,6 @@ static size_t write_cb(char *data, size_t n, size_t l, void *userp) {
 
 static void project_fetch_queue(CURLM *cm, int i, args_t *args) {
   memset(url, 0, sizeof(url));
-  data.i = i;
-  data.args = args;
 
   if (args->token)
     snprintf(url, LEN0(url),
@@ -156,7 +148,7 @@ static void project_fetch_queue(CURLM *cm, int i, args_t *args) {
 
   CURL *eh = curl_easy_init();
   curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, write_cb);
-  curl_easy_setopt(eh, CURLOPT_WRITEDATA, &data);
+  curl_easy_setopt(eh, CURLOPT_WRITEDATA, i);
   curl_easy_setopt(eh, CURLOPT_URL, url);
   curl_easy_setopt(eh, CURLOPT_PRIVATE, i);
   curl_multi_add_handle(cm, eh);
@@ -164,8 +156,6 @@ static void project_fetch_queue(CURLM *cm, int i, args_t *args) {
 
 static void project_pipelines_fetch_queue(CURLM *cm, int i, args_t *args) {
   memset(url, 0, sizeof(url));
-  data.i = i;
-  data.args = args;
 
   if (args->token)
     snprintf(url, LEN0(url),
@@ -177,7 +167,7 @@ static void project_pipelines_fetch_queue(CURLM *cm, int i, args_t *args) {
   CURL *eh = curl_easy_init();
   curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, write_cb);
   curl_easy_setopt(eh, CURLOPT_URL, url);
-  curl_easy_setopt(eh, CURLOPT_WRITEDATA, &data);
+  curl_easy_setopt(eh, CURLOPT_WRITEDATA, i);
   curl_easy_setopt(eh, CURLOPT_PRIVATE, i);
   curl_multi_add_handle(cm, eh);
 }

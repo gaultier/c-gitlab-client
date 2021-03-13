@@ -53,6 +53,8 @@ static void args_init(args_t *args) {
   lstack_init(&args->pipelines, 500);
 }
 
+static args_t args;
+
 static void project_init(project_t *project, i64 id) {
   project->pro_id = id;
   project->pro_name = sdsempty();
