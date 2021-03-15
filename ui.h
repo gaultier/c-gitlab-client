@@ -14,7 +14,7 @@ typedef struct {
 table_t table;
 
 static void table_init() {
-  table = (table_t){.tab_max_width_cols = {[2] = 9, [3] = 9},
+  table = (table_t){.tab_max_width_cols = {9, 9, 9, 9, 9},
                     .tab_h = tb_height() - 1};  // -1 for header
 }
 
@@ -53,13 +53,16 @@ static void table_pull_pipelines(table_t* table, args_t* args) {
       table->tab_max_width_cols[col] = MAX(table->tab_max_width_cols[col],
                                            (int)sdslen(pipeline->pip_status));
 
+      bool found = false;
       for (int i = 0; i < (int)buf_size(table->tab_pipelines); i++) {
         if (table->tab_pipelines[i].pip_id == pipeline->pip_id) {
           pipeline_release(&table->tab_pipelines[i]);
           table->tab_pipelines[i] = *pipeline;
+          found = true;
           continue;
         }
       }
+      if (found) continue;
 
       buf_push(table->tab_pipelines, *pipeline);
     }
