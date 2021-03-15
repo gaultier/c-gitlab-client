@@ -204,7 +204,7 @@ static void api_fetch(CURLM *cm, args_t *args) {
   } while (still_alive);
 }
 
-static void projects_fetch(args_t *args) {
+static void api_projects_fetch(args_t *args) {
   for (u64 i = 0; i < buf_size(args->arg_project_ids); i++) {
     const i64 id = args->arg_project_ids[i];
 
@@ -221,7 +221,7 @@ static void projects_fetch(args_t *args) {
   }
 }
 
-static pipeline_t *pipelines_fetch(args_t *args) {
+static pipeline_t *api_pipelines_fetch(args_t *args) {
   for (u64 i = 0; i < buf_size(args->arg_projects); i++) {
     sdsclear(args->arg_projects[i].pro_api_data);
     project_pipelines_fetch_queue(cm, i, args);
@@ -242,9 +242,11 @@ static void *fetch(void *v_args) {
   args_t *args = v_args;
   curl_global_init(CURL_GLOBAL_ALL);
 
+  api_projects_fetch(args);
+
   for (;;) {
     buf_trunc(json_tokens, 10 * 1024);  // 10 KiB
-    pipeline_t *pipelines = pipelines_fetch(args);
+    pipeline_t *pipelines = api_pipelines_fetch(args);
     lstack_push(&args->arg_channel, pipelines);
     sleep(5);
   }
