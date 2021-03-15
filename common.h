@@ -127,3 +127,8 @@ static void entity_pop(entity_t *entities, entity_t *entity) {
   }
 }
 
+static void entity_release(entity_t *entity) {
+  sds_free(entity->ent_fetch_data);
+  entity->ent_fetch_data = NULL;
+}
+

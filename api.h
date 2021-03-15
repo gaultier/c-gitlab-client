@@ -23,7 +23,7 @@ static int json_eq(const char *json, const jsmntok_t *tok, const char *s,
   return -1;
 }
 
-static void project_parse_json(entity_t *entity) {
+static void project_parse_json(entity_t *entity, lstack_t *channel) {
   buf_trunc(json_tokens, 10 * 1024);  // 10 KiB
   buf_clear(json_tokens);
 
@@ -58,16 +58,15 @@ static void project_parse_json(entity_t *entity) {
       i++;
     }
   }
+  lstack_push(channel, entity);
 }
 
-static void pipelines_parse_json(entity_t *entity) {
+static void pipelines_parse_json(entity_t *entity, lstack_t *channel) {
   buf_trunc(json_tokens, 10 * 1024);  // 10 KiB
   buf_clear(json_tokens);
 
   jsmn_parser parser;
   jsmn_init(&parser);
-
-  pipeline_t *pipeline = &entity->ent_e.ent_pipeline;
 
   const char *const s = entity->ent_fetch_data;
   int res = jsmn_parse(&parser, s, sdslen((char *)s), json_tokens,
@@ -80,9 +79,15 @@ static void pipelines_parse_json(entity_t *entity) {
     return;
   }
 
+  entity_t *e_pipeline = entity_new(EK_PIPELINE);
+  pipeline_t *pipeline = NULL;
   for (i64 i = 1; i < res; i++) {
     const jsmntok_t *const tok = &json_tokens[i];
     if (tok->type == JSMN_OBJECT) {
+      if (pipeline) {
+        lstack_push(channel, e_pipeline);
+      }
+      pipeline = &e_pipeline->ent_e.ent_pipeline;
       continue;
     }
 
@@ -128,6 +133,9 @@ static void pipelines_parse_json(entity_t *entity) {
           sdscatlen(pipeline->pip_url, value, t->end - t->start);
     }
   }
+
+  entity_pop(entities, entity);
+  entity_release(entity);
 }
 
 static size_t curl_write_cb(char *data, size_t n, size_t l, void *userp) {
@@ -198,9 +206,9 @@ static void api_do_fetch(CURLM *cm) {
 
         if (msg->data.result == CURLE_OK) {
           if ((*entity)->ent_kind == EK_PROJECT)
-            project_parse_json(*entity);
+            project_parse_json(*entity, &args.arg_channel);
           else if ((*entity)->ent_kind == EK_PIPELINE)
-            pipelines_parse_json(*entity);
+            pipelines_parse_json(*entity, &args.arg_channel);
         }
       } else {
         fprintf(stderr, "Failed to fetch from API: err=%d\n", msg->msg);
@@ -236,7 +244,6 @@ static void *fetch(void *v_args) {
     }
 
     api_do_fetch(cm);
-    lstack_push(&args->arg_channel, entities);
     sleep(5);
   }
   return NULL;
