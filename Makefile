@@ -1,5 +1,5 @@
-LDFLAGS = -lcurl -lmenu -lncurses -L/usr/local/Cellar/ncurses/6.2/lib/
+LDFLAGS = -lcurl
 
 HEADERS := $(wildcard *.h)
 gitlab_client: main.c $(HEADERS)
-	$(CC) $(CFLAGS) $(LDFLAGS) -Wall -Wextra -g $< -o $@ -O2 -fsanitize=thread
+	$(CC) $(CFLAGS) $(LDFLAGS) -Wall -Wextra -g $< -o $@ -O2 #-fsanitize=address
