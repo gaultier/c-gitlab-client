@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.h"
+#include "deps/lstack/lstack.h"
 #include "deps/termbox/src/termbox.c"
 #include "deps/termbox/src/termbox.h"
 #include "deps/termbox/src/utf8.c"
@@ -32,41 +33,30 @@ static void table_resize(table_t* table) {
   table->tab_y = MAX(table->tab_y, table->tab_h);
 }
 
-static void table_pull_pipelines(table_t* table, args_t* args) {
-  pipeline_t* pipelines = NULL;
-  while ((pipelines = lstack_pop(&args->arg_channel))) {
-    for (int j = 0; j < (int)buf_size(pipelines); j++) {
-      pipeline_t* pipeline = &pipelines[j];
+static void table_calc_size(table_t* table) {
+  pipeline_t* pipeline = &buf_last(table->tab_pipelines);
 
-      int col = 0;
-      table->tab_max_width_cols[col] =
-          MAX(table->tab_max_width_cols[col],
-              (int)sdslen(pipeline->pip_project_path_with_namespace));
-      col++;
+  int col = 0;
+  table->tab_max_width_cols[col] =
+      MAX(table->tab_max_width_cols[col],
+          (int)sdslen(pipeline->pip_project_path_with_namespace));
+  col++;
 
-      table->tab_max_width_cols[col] = MAX(table->tab_max_width_cols[col],
-                                           (int)sdslen(pipeline->pip_vcs_ref));
-      col++;
+  table->tab_max_width_cols[col] =
+      MAX(table->tab_max_width_cols[col], (int)sdslen(pipeline->pip_vcs_ref));
+  col++;
 
-      col += 2;  // skip created, updated
+  col += 2;  // skip created, updated
 
-      table->tab_max_width_cols[col] = MAX(table->tab_max_width_cols[col],
-                                           (int)sdslen(pipeline->pip_status));
+  table->tab_max_width_cols[col] =
+      MAX(table->tab_max_width_cols[col], (int)sdslen(pipeline->pip_status));
 
-      bool found = false;
-      for (int i = 0; i < (int)buf_size(table->tab_pipelines); i++) {
-        if (table->tab_pipelines[i].pip_id == pipeline->pip_id) {
-          pipeline_release(&table->tab_pipelines[i]);
-          table->tab_pipelines[i] = *pipeline;
-          found = true;
-          continue;
-        }
-      }
-      if (found) continue;
-
-      buf_push(table->tab_pipelines, *pipeline);
+  for (int i = 0; i < (int)buf_size(table->tab_pipelines); i++) {
+    if (table->tab_pipelines[i].pip_id == pipeline->pip_id) {
+      /* pipeline_release(&table->tab_pipelines[i]); */
+      table->tab_pipelines[i] = *pipeline;
+      return;
     }
-    buf_free(pipelines);
   }
 }
 
@@ -214,13 +204,21 @@ static void table_draw(table_t* table) {
   }
 }
 
-static void ui_draw(args_t* args) {
+static void ui_run(args_t* args) {
   table_init();
 
   struct tb_event event;
+  entity_t* entity = NULL;
   while (1) {
     tb_peek_event(&event, 500);
-    table_pull_pipelines(&table, args);
+    while ((entity = lstack_pop(&args->arg_channel))) {
+      if (entity->ent_kind == EK_PIPELINE) {
+        buf_push(table.tab_pipelines, entity->ent_e.ent_pipeline);
+      }
+      entity_pop(entities, entity);
+      sdsfree(entity->ent_fetch_data);
+    }
+    table_calc_size(&table);
 
     switch (event.type) {
       case TB_EVENT_RESIZE:
