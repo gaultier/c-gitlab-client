@@ -79,15 +79,17 @@ static void pipelines_parse_json(entity_t *entity, lstack_t *channel) {
     return;
   }
 
-  entity_t *e_pipeline = entity_new(EK_PIPELINE);
+  entity_t *e_pipeline = NULL;
   pipeline_t *pipeline = NULL;
   for (i64 i = 1; i < res; i++) {
     const jsmntok_t *const tok = &json_tokens[i];
     if (tok->type == JSMN_OBJECT) {
-      if (pipeline) {
+      if (e_pipeline) {
         lstack_push(channel, e_pipeline);
       }
+      e_pipeline = entity_new(EK_PIPELINE);
       pipeline = &e_pipeline->ent_e.ent_pipeline;
+      pipeline_init(pipeline, entity->ent_e.ent_pipeline.pip_project_id);
       continue;
     }
 
@@ -134,8 +136,8 @@ static void pipelines_parse_json(entity_t *entity, lstack_t *channel) {
     }
   }
 
-  entity_pop(entities, entity);
-  entity_release(entity);
+  /* entity_pop(entities, entity); */
+  /* entity_release(entity); */
 }
 
 static size_t curl_write_cb(char *data, size_t n, size_t l, void *userp) {
@@ -194,21 +196,21 @@ static void api_do_fetch(CURLM *cm) {
     while ((msg = curl_multi_info_read(cm, &msgs_left))) {
       CURL *e = msg->easy_handle;
 
-      entity_t **entity;
+      entity_t *entity = NULL;
       curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, &entity);
 
       if (msg->msg == CURLMSG_DONE) {
         // fprintf(stderr, "R: %d - %s\n", msg->data.result,
         //        curl_easy_strerror(msg->data.result));
-        curl_multi_remove_handle(cm, e);
-        curl_easy_cleanup(e);
 
         if (msg->data.result == CURLE_OK) {
-          if ((*entity)->ent_kind == EK_PROJECT)
-            project_parse_json(*entity, &args.arg_channel);
-          else if ((*entity)->ent_kind == EK_PIPELINE)
-            pipelines_parse_json(*entity, &args.arg_channel);
+          if (entity->ent_kind == EK_PROJECT)
+            project_parse_json(entity, &args.arg_channel);
+          else if (entity->ent_kind == EK_PIPELINE)
+            pipelines_parse_json(entity, &args.arg_channel);
         }
+        curl_multi_remove_handle(cm, e);
+        curl_easy_cleanup(e);
       } else {
         fprintf(stderr, "Failed to fetch from API: err=%d\n", msg->msg);
         // TODO: entity_pop?
