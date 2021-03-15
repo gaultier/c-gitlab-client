@@ -61,21 +61,21 @@ static void project_parse_json(entity_t *entity, lstack_t *channel) {
   lstack_push(channel, entity);
 }
 
-static void pipelines_parse_json(entity_t *entity, lstack_t *channel) {
+static void pipelines_parse_json(entity_t *dummy_entity, lstack_t *channel) {
   buf_trunc(json_tokens, 10 * 1024);  // 10 KiB
   buf_clear(json_tokens);
 
   jsmn_parser parser;
   jsmn_init(&parser);
 
-  const char *const s = entity->ent_fetch_data;
+  const char *const s = dummy_entity->ent_fetch_data;
   int res = jsmn_parse(&parser, s, sdslen((char *)s), json_tokens,
                        buf_capacity(json_tokens));
   if (res <= 0 || json_tokens[0].type != JSMN_ARRAY) {
     fprintf(stderr,
             "%s:%d:Malformed JSON for project pipelines: "
             "json=`%s`\n",
-            __FILE__, __LINE__, entity->ent_fetch_data);
+            __FILE__, __LINE__, dummy_entity->ent_fetch_data);
     return;
   }
 
@@ -89,7 +89,7 @@ static void pipelines_parse_json(entity_t *entity, lstack_t *channel) {
       }
       e_pipeline = entity_new(EK_PIPELINE);
       pipeline = &e_pipeline->ent_e.ent_pipeline;
-      pipeline_init(pipeline, entity->ent_e.ent_pipeline.pip_project_id);
+      pipeline_init(pipeline, dummy_entity->ent_e.ent_pipeline.pip_project_id);
       continue;
     }
 
@@ -135,9 +135,6 @@ static void pipelines_parse_json(entity_t *entity, lstack_t *channel) {
           sdscatlen(pipeline->pip_url, value, t->end - t->start);
     }
   }
-
-  /* entity_pop(entities, entity); */
-  /* entity_release(entity); */
 }
 
 static size_t curl_write_cb(char *data, size_t n, size_t l, void *userp) {
