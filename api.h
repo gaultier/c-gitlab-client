@@ -157,7 +157,7 @@ static void project_queue_fetch(CURLM *cm, int i, args_t *args) {
   curl_multi_add_handle(cm, eh);
 }
 
-static void project_pipelines_queue_fetch(CURLM *cm, int i, args_t *args) {
+static void pipelines_queue_fetch(CURLM *cm, int i, args_t *args) {
   memset(url, 0, sizeof(url));
 
   if (args->arg_gitlab_token)
@@ -245,7 +245,7 @@ static void *fetch(void *v_args) {
     buf_trunc(json_tokens, 10 * 1024);  // 10 KiB
 
     for (u64 i = 0; i < buf_size(args->arg_project_ids); i++)
-      project_pipelines_queue_fetch(cm, i, args);
+      pipelines_queue_fetch(cm, i, args);
 
     api_do_fetch(cm, args);
     lstack_push(&args->arg_channel, pipelines);
