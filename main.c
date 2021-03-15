@@ -88,7 +88,7 @@ int main(int argc, char* argv[]) {
              pipeline->pip_updated_at, pipeline->pip_status,
              pipeline->pip_vcs_ref);
     }
-    /* entity_pop(entities, entity); */
+    entity_pop(entities, entity);
     entity_release(entity);
   }
 }

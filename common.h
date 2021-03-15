@@ -101,6 +101,13 @@ static void pipeline_release(pipeline_t *pipeline) {
   pipeline->pip_project_path_with_namespace = NULL;
 }
 
+static void project_release(project_t *project) {
+  sdsfree(project->pro_name);
+  project->pro_name = NULL;
+  sdsfree(project->pro_path_with_namespace);
+  project->pro_path_with_namespace = NULL;
+}
+
 static entity_t *entity_new(entity_kind_t kind) {
   entity_t *entity = calloc(1, sizeof(entity_t));
   entity->ent_kind = kind;
@@ -128,12 +135,11 @@ static void entity_pop(entity_t *entities, entity_t *entity) {
 }
 
 static void entity_release(entity_t *entity) {
-  sds_free(entity->ent_fetch_data);
-  entity->ent_fetch_data = NULL;
+  /* sds_free(entity->ent_fetch_data); */
+  /* entity->ent_fetch_data = NULL; */
 
   if (entity->ent_kind == EK_PROJECT)
-    assert(0);
+    project_release(&entity->ent_e.ent_project);
   else if (entity->ent_kind == EK_PIPELINE)
     pipeline_release(&entity->ent_e.ent_pipeline);
 }
-
