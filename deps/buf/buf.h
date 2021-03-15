@@ -67,6 +67,8 @@ struct buf {
 
 #define buf_pop(v) ((v)[--buf_ptr(v)->size])
 
+#define buf_last(v) ((v)[buf_size(v) - 1])
+
 #define buf_grow(v, n) ((v) = buf_grow1((v), sizeof(*(v)), n))
 
 #define buf_trunc(v, n) \

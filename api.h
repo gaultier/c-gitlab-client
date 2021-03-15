@@ -1,12 +1,20 @@
 #pragma once
 
+#include <curl/curl.h>
+
 #include "common.h"
 #include "deps/lstack/lstack.c"
 #include "deps/lstack/lstack.h"
+#include "deps/sds/sds.h"
 
 static jsmntok_t *json_tokens;
 static char url[4097];
 static CURLM *cm = NULL;
+
+typedef struct {
+  int fet_entity_i;
+  entity_kind_t fet_kind;
+} fetch_t;
 
 static void api_init() { cm = curl_multi_init(); }
 
@@ -19,26 +27,31 @@ static int json_eq(const char *json, const jsmntok_t *tok, const char *s,
   return -1;
 }
 
-static void project_parse_json(project_t *project) {
-  buf_grow(json_tokens, 10 * 1024);
+static void project_parse_json(entity_t **entities) {
+  buf_trunc(json_tokens, 10 * 1024);
 
   jsmn_parser parser;
   jsmn_init(&parser);
 
-  const char *const s = project->pro_api_data;
+  entity_t entity;
+  entity_init(&entity, EK_PROJECT);
+  project_t *project = &entity.ent_e.ent_project;
+  project_init(project, 0);  // FIXME
+
+  const char *const s = entity.ent_fetch_data;
   int res = jsmn_parse(&parser, s, sdslen((char *)s), json_tokens,
-                       sdslen(project->pro_api_data));
+                       buf_capacity(json_tokens));
   if (res <= 0 || json_tokens[0].type != JSMN_OBJECT) {
-    fprintf(stderr, "%s:%d:Malformed JSON for project: id=%lld\n", __FILE__,
-            __LINE__, project->pro_id);
+    fprintf(stderr, "%s:%d:Malformed JSON for project\n", __FILE__, __LINE__);
     return;
   }
 
   for (i64 i = 1; i < res; i++) {
     jsmntok_t *const tok = &json_tokens[i];
-    if (tok->type != JSMN_STRING) continue;
+    if (tok->type != JSMN_STRING)
+      continue;
 
-    if (json_eq(s, tok, "name", LEN0("name")) == 0) {
+    else if (json_eq(s, tok, "name", LEN0("name")) == 0) {
       project->pro_name =
           sdscatlen(project->pro_name, s + json_tokens[i + 1].start,
                     json_tokens[i + 1].end - json_tokens[i + 1].start);
@@ -51,83 +64,80 @@ static void project_parse_json(project_t *project) {
       i++;
     }
   }
+  buf_push(*entities, entity);
 }
 
-static void pipelines_json_parse(project_t *project, pipeline_t **pipelines) {
-  assert(pipelines);
+static void pipelines_parse_json(entity_t **entities) {
   buf_clear(json_tokens);
 
   jsmn_parser parser;
   jsmn_init(&parser);
 
-  const char *const s = project->pro_api_data;
+  entity_t entity;
+  entity_init(&entity, EK_PROJECT);
+  pipeline_t *pipeline = &entity.ent_e.ent_pipeline;
+  pipeline_init(pipeline, sdsempty());  // FIXME
+
+  const char *const s = entity.ent_fetch_data;
   int res = jsmn_parse(&parser, s, sdslen((char *)s), json_tokens,
-                       sdslen(project->pro_api_data));
+                       buf_capacity(json_tokens));
   if (res <= 0 || json_tokens[0].type != JSMN_ARRAY) {
     fprintf(stderr,
-            "%s:%d:Malformed JSON for project pipelines: id=%lld res=%d "
+            "%s:%d:Malformed JSON for project pipelines: "
             "json=`%s`\n",
-            __FILE__, __LINE__, project->pro_id, res, project->pro_api_data);
+            __FILE__, __LINE__, entity.ent_fetch_data);
     return;
   }
 
-  pipeline_t *pipeline = NULL;
   for (i64 i = 1; i < res; i++) {
     const jsmntok_t *const tok = &json_tokens[i];
     if (tok->type == JSMN_OBJECT) {
-      buf_push(*pipelines, ((pipeline_t){0}));
-      assert(*pipelines);
-      pipeline = &((*pipelines)[buf_size(*pipelines) - 1]);
-      pipeline_init(pipeline, project->pro_path_with_namespace);
       continue;
     }
 
-    if (json_eq(project->pro_api_data, tok, "id", LEN0("id")) == 0) {
+    if (json_eq(s, tok, "id", LEN0("id")) == 0) {
       const jsmntok_t *const t = &json_tokens[++i];
-      const char *const value = project->pro_api_data + t->start;
+      const char *const value = s + t->start;
       if (t->type != JSMN_PRIMITIVE) {
-        fprintf(
-            stderr,
-            "%s:%d:Malformed JSON for project id: id=%lld res=%d json=`%s`\n",
-            __FILE__, __LINE__, project->pro_id, res, project->pro_api_data);
+        fprintf(stderr, "%s:%d:Malformed JSON for project: res=%d json=`%s`\n",
+                __FILE__, __LINE__, res, s);
         return;
       }
 
       pipeline->pip_id = strtoll(value, NULL, 10);
     }
-    if (json_eq(project->pro_api_data, tok, "ref", LEN0("ref")) == 0) {
+    if (json_eq(s, tok, "ref", LEN0("ref")) == 0) {
       const jsmntok_t *const t = &json_tokens[++i];
-      const char *const value = project->pro_api_data + t->start;
+      const char *const value = s + t->start;
       pipeline->pip_vcs_ref =
           sdscatlen(pipeline->pip_vcs_ref, value, t->end - t->start);
     }
-    if (json_eq(project->pro_api_data, tok, "created_at", LEN0("created_at")) ==
-        0) {
+    if (json_eq(s, tok, "created_at", LEN0("created_at")) == 0) {
       const jsmntok_t *const t = &json_tokens[++i];
-      const char *const value = project->pro_api_data + t->start;
+      const char *const value = s + t->start;
       pipeline->pip_created_at =
           sdscatlen(pipeline->pip_created_at, value, t->end - t->start);
     }
-    if (json_eq(project->pro_api_data, tok, "updated_at", LEN0("updated_at")) ==
-        0) {
+    if (json_eq(s, tok, "updated_at", LEN0("updated_at")) == 0) {
       const jsmntok_t *const t = &json_tokens[++i];
-      const char *const value = project->pro_api_data + t->start;
+      const char *const value = s + t->start;
       pipeline->pip_updated_at =
           sdscatlen(pipeline->pip_updated_at, value, t->end - t->start);
     }
-    if (json_eq(project->pro_api_data, tok, "status", LEN0("status")) == 0) {
+    if (json_eq(s, tok, "status", LEN0("status")) == 0) {
       const jsmntok_t *const t = &json_tokens[++i];
-      const char *const value = project->pro_api_data + t->start;
+      const char *const value = s + t->start;
       pipeline->pip_status =
           sdscatlen(pipeline->pip_status, value, t->end - t->start);
     }
-    if (json_eq(project->pro_api_data, tok, "web_url", LEN0("web_url")) == 0) {
+    if (json_eq(s, tok, "web_url", LEN0("web_url")) == 0) {
       const jsmntok_t *const t = &json_tokens[++i];
-      const char *const value = project->pro_api_data + t->start;
+      const char *const value = s + t->start;
       pipeline->pip_url =
           sdscatlen(pipeline->pip_url, value, t->end - t->start);
     }
   }
+  buf_push(*entities, entity);
 }
 
 static size_t curl_write_cb(char *data, size_t n, size_t l, void *userp) {
@@ -151,7 +161,8 @@ static void project_queue_fetch(CURLM *cm, int i, args_t *args) {
 
   CURL *eh = curl_easy_init();
   curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, curl_write_cb);
-  curl_easy_setopt(eh, CURLOPT_WRITEDATA, i);
+  fetch_t fetch = {.fet_entity_i = i, .fet_kind = EK_PROJECT};
+  curl_easy_setopt(eh, CURLOPT_WRITEDATA, fetch);
   curl_easy_setopt(eh, CURLOPT_URL, url);
   curl_easy_setopt(eh, CURLOPT_PRIVATE, i);
   curl_multi_add_handle(cm, eh);
@@ -170,12 +181,13 @@ static void pipelines_queue_fetch(CURLM *cm, int i, args_t *args) {
   CURL *eh = curl_easy_init();
   curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, curl_write_cb);
   curl_easy_setopt(eh, CURLOPT_URL, url);
-  curl_easy_setopt(eh, CURLOPT_WRITEDATA, i);
+  fetch_t fetch = {.fet_entity_i = i, .fet_kind = EK_PIPELINE};
+  curl_easy_setopt(eh, CURLOPT_WRITEDATA, fetch);
   curl_easy_setopt(eh, CURLOPT_PRIVATE, i);
   curl_multi_add_handle(cm, eh);
 }
 
-static void api_do_fetch(CURLM *cm, args_t *args) {
+static void api_do_fetch(CURLM *cm, entity_t **entities) {
   int still_alive = 1;
   int msgs_left = -1;
   do {
@@ -185,14 +197,22 @@ static void api_do_fetch(CURLM *cm, args_t *args) {
     while ((msg = curl_multi_info_read(cm, &msgs_left))) {
       CURL *e = msg->easy_handle;
 
+      fetch_t fetch = {0};
+      curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, &fetch);
+
       if (msg->msg == CURLMSG_DONE) {
         // fprintf(stderr, "R: %d - %s\n", msg->data.result,
         //        curl_easy_strerror(msg->data.result));
         curl_multi_remove_handle(cm, e);
         curl_easy_cleanup(e);
+
+        if (msg->data.result == CURLE_OK) {
+          if (fetch.fet_kind == EK_PROJECT)
+            project_parse_json(entities);
+          else if (fetch.fet_kind == EK_PIPELINE)
+            pipelines_parse_json(entities);
+        }
       } else {
-        i64 entity_i = 0;
-        curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, &entity_i);
         fprintf(stderr, "Failed to fetch from API: entity_i=%lld err=%d\n",
                 entity_i, msg->msg);
       }
@@ -247,7 +267,7 @@ static void *fetch(void *v_args) {
       pipelines_queue_fetch(cm, i, args);
 
     api_do_fetch(cm, args);
-    lstack_push(&args->arg_channel, pipelines);
+    lstack_push(&args->arg_channel, entities);
     sleep(5);
   }
   return NULL;

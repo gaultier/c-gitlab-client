@@ -43,11 +43,17 @@ typedef enum { EK_PROJECT, EK_PIPELINE } entity_kind_t;
 
 typedef struct {
   entity_kind_t ent_kind;
+  sds ent_fetch_data;
   union {
     pipeline_t ent_pipeline;
     project_t ent_project;
   } ent_e;
 } entity_t;
+
+static void entity_init(entity_t *entity, entity_kind_t kind) {
+  entity->ent_kind = kind;
+  entity->ent_fetch_data = sdsempty();
+}
 
 typedef struct {
   sds arg_base_url, arg_gitlab_token;
