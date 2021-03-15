@@ -6,6 +6,9 @@
 
 static jsmntok_t *json_tokens;
 static char url[4097];
+static CURLM *cm = NULL;
+
+static void api_init() { cm = curl_multi_init(); }
 
 static int json_eq(const char *json, const jsmntok_t *tok, const char *s,
                    u64 s_len) {
@@ -202,8 +205,6 @@ static void api_fetch(CURLM *cm, args_t *args) {
 }
 
 static void projects_fetch(args_t *args) {
-  CURLM *cm = curl_multi_init();
-
   for (u64 i = 0; i < buf_size(args->arg_project_ids); i++) {
     const i64 id = args->arg_project_ids[i];
 
@@ -213,7 +214,6 @@ static void projects_fetch(args_t *args) {
     project_fetch_queue(cm, i, args);
   }
   api_fetch(cm, args);
-  curl_multi_cleanup(cm);
 
   for (u64 i = 0; i < buf_size(args->arg_project_ids); i++) {
     project_t *project = &args->arg_projects[i];
@@ -222,15 +222,12 @@ static void projects_fetch(args_t *args) {
 }
 
 static pipeline_t *pipelines_fetch(args_t *args) {
-  CURLM *cm = curl_multi_init();
-
   for (u64 i = 0; i < buf_size(args->arg_projects); i++) {
     sdsclear(args->arg_projects[i].pro_api_data);
     project_pipelines_fetch_queue(cm, i, args);
   }
 
   api_fetch(cm, args);
-  curl_multi_cleanup(cm);
 
   pipeline_t *pipelines = NULL;
   buf_grow(pipelines, 100);
@@ -253,4 +250,3 @@ static void *fetch(void *v_args) {
   }
   return NULL;
 }
-
