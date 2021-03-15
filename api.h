@@ -196,7 +196,7 @@ static void api_fetch(CURLM *cm, args_t *args) {
                 project->pro_id, msg->msg);
       }
     }
-    if (still_alive) curl_multi_wait(cm, NULL, 0, 1000, NULL);
+    if (still_alive) curl_multi_wait(cm, NULL, 0, 100, NULL);
 
   } while (still_alive);
 }
