@@ -23,19 +23,16 @@ static int json_eq(const char *json, const jsmntok_t *tok, const char *s,
   return -1;
 }
 
-static void project_parse_json(entity_t **entities) {
+static void project_parse_json(entity_t *entity) {
   buf_trunc(json_tokens, 10 * 1024);  // 10 KiB
   buf_clear(json_tokens);
 
   jsmn_parser parser;
   jsmn_init(&parser);
 
-  entity_t entity;
-  entity_init(&entity, EK_PROJECT);
-  project_t *project = &entity.ent_e.ent_project;
-  project_init(project, 0);  // FIXME
+  project_t *project = &entity->ent_e.ent_project;
 
-  const char *const s = entity.ent_fetch_data;
+  const char *const s = entity->ent_fetch_data;
   int res = jsmn_parse(&parser, s, sdslen((char *)s), json_tokens,
                        buf_capacity(json_tokens));
   if (res <= 0 || json_tokens[0].type != JSMN_OBJECT) {
@@ -61,29 +58,25 @@ static void project_parse_json(entity_t **entities) {
       i++;
     }
   }
-  buf_push(*entities, entity);
 }
 
-static void pipelines_parse_json(entity_t **entities) {
+static void pipelines_parse_json(entity_t *entity) {
   buf_trunc(json_tokens, 10 * 1024);  // 10 KiB
   buf_clear(json_tokens);
 
   jsmn_parser parser;
   jsmn_init(&parser);
 
-  entity_t entity;
-  entity_init(&entity, EK_PROJECT);
-  pipeline_t *pipeline = &entity.ent_e.ent_pipeline;
-  pipeline_init(pipeline, sdsempty());  // FIXME
+  pipeline_t *pipeline = &entity->ent_e.ent_pipeline;
 
-  const char *const s = entity.ent_fetch_data;
+  const char *const s = entity->ent_fetch_data;
   int res = jsmn_parse(&parser, s, sdslen((char *)s), json_tokens,
                        buf_capacity(json_tokens));
   if (res <= 0 || json_tokens[0].type != JSMN_ARRAY) {
     fprintf(stderr,
             "%s:%d:Malformed JSON for project pipelines: "
             "json=`%s`\n",
-            __FILE__, __LINE__, entity.ent_fetch_data);
+            __FILE__, __LINE__, entity->ent_fetch_data);
     return;
   }
 
@@ -135,7 +128,6 @@ static void pipelines_parse_json(entity_t **entities) {
           sdscatlen(pipeline->pip_url, value, t->end - t->start);
     }
   }
-  buf_push(*entities, entity);
 }
 
 static size_t curl_write_cb(char *data, size_t n, size_t l, void *userp) {
@@ -206,9 +198,9 @@ static void api_do_fetch(CURLM *cm) {
 
         if (msg->data.result == CURLE_OK) {
           if ((*entity)->ent_kind == EK_PROJECT)
-            project_parse_json(entity);
+            project_parse_json(*entity);
           else if ((*entity)->ent_kind == EK_PIPELINE)
-            pipelines_parse_json(entity);
+            pipelines_parse_json(*entity);
         }
       } else {
         fprintf(stderr, "Failed to fetch from API: err=%d\n", msg->msg);
