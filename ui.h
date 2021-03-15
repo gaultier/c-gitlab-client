@@ -46,7 +46,10 @@ static void table_pull_pipelines(table_t* table, args_t* args) {
 
       table->tab_max_width_cols[col] = MAX(table->tab_max_width_cols[col],
                                            (int)sdslen(pipeline->pip_vcs_ref));
-      col += 3;  // skip created, updated
+      col++;
+
+      col += 2;  // skip created, updated
+
       table->tab_max_width_cols[col] = MAX(table->tab_max_width_cols[col],
                                            (int)sdslen(pipeline->pip_status));
 
