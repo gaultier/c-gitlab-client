@@ -10,11 +10,7 @@
 static jsmntok_t *json_tokens;
 static char url[4097];
 static CURLM *cm = NULL;
-
-typedef struct {
-  int fet_entity_i;
-  entity_kind_t fet_kind;
-} fetch_t;
+static entity_t *entities = NULL;
 
 static void api_init() { cm = curl_multi_init(); }
 
@@ -150,46 +146,46 @@ static size_t curl_write_cb(char *data, size_t n, size_t l, void *userp) {
   return n * l;
 }
 
-static void project_queue_fetch(CURLM *cm, int i, args_t *args) {
+static void project_queue_fetch(CURLM *cm, entity_t *entity, args_t *args) {
   memset(url, 0, sizeof(url));
 
   if (args->arg_gitlab_token)
-    snprintf(
-        url, LEN0(url), "%s/api/v4/projects/%llu?simple=true&private_token=%s",
-        args->arg_base_url, args->arg_project_ids[i], args->arg_gitlab_token);
+    snprintf(url, LEN0(url),
+             "%s/api/v4/projects/%llu?simple=true&private_token=%s",
+             args->arg_base_url, entity->ent_e.ent_project.pro_id,
+             args->arg_gitlab_token);
   else
     snprintf(url, LEN0(url), "%s/api/v4/projects/%llu", args->arg_base_url,
-             args->arg_project_ids[i]);
+             entity->ent_e.ent_project.pro_id);
 
   CURL *eh = curl_easy_init();
   curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, curl_write_cb);
-  fetch_t fetch = {.fet_entity_i = i, .fet_kind = EK_PROJECT};
-  curl_easy_setopt(eh, CURLOPT_WRITEDATA, fetch);
+  curl_easy_setopt(eh, CURLOPT_WRITEDATA, entity);
   curl_easy_setopt(eh, CURLOPT_URL, url);
-  curl_easy_setopt(eh, CURLOPT_PRIVATE, i);
+  curl_easy_setopt(eh, CURLOPT_PRIVATE, entity);
   curl_multi_add_handle(cm, eh);
 }
 
-static void pipelines_queue_fetch(CURLM *cm, int i, args_t *args) {
+static void pipelines_queue_fetch(CURLM *cm, entity_t *entity, args_t *args) {
   memset(url, 0, sizeof(url));
 
   if (args->arg_gitlab_token)
-    snprintf(
-        url, LEN0(url), "%s/api/v4/projects/%llu/pipelines?private_token=%s",
-        args->arg_base_url, args->arg_project_ids[i], args->arg_gitlab_token);
+    snprintf(url, LEN0(url),
+             "%s/api/v4/projects/%llu/pipelines?private_token=%s",
+             args->arg_base_url, entity->ent_e.ent_pipeline.pip_project_id,
+             args->arg_gitlab_token);
   else
     snprintf(url, LEN0(url), "%s/api/v4/projects/%llu/pipelines",
-             args->arg_base_url, args->arg_project_ids[i]);
+             args->arg_base_url, entity->ent_e.ent_pipeline.pip_project_id);
   CURL *eh = curl_easy_init();
   curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, curl_write_cb);
   curl_easy_setopt(eh, CURLOPT_URL, url);
-  fetch_t fetch = {.fet_entity_i = i, .fet_kind = EK_PIPELINE};
-  curl_easy_setopt(eh, CURLOPT_WRITEDATA, fetch);
-  curl_easy_setopt(eh, CURLOPT_PRIVATE, i);
+  curl_easy_setopt(eh, CURLOPT_WRITEDATA, entity);
+  curl_easy_setopt(eh, CURLOPT_PRIVATE, entity);
   curl_multi_add_handle(cm, eh);
 }
 
-static void api_do_fetch(CURLM *cm, entity_t **entities) {
+static void api_do_fetch(CURLM *cm) {
   int still_alive = 1;
   int msgs_left = -1;
   do {
@@ -199,8 +195,8 @@ static void api_do_fetch(CURLM *cm, entity_t **entities) {
     while ((msg = curl_multi_info_read(cm, &msgs_left))) {
       CURL *e = msg->easy_handle;
 
-      fetch_t fetch = {0};
-      curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, &fetch);
+      entity_t **entity;
+      curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, &entity);
 
       if (msg->msg == CURLMSG_DONE) {
         // fprintf(stderr, "R: %d - %s\n", msg->data.result,
@@ -209,14 +205,14 @@ static void api_do_fetch(CURLM *cm, entity_t **entities) {
         curl_easy_cleanup(e);
 
         if (msg->data.result == CURLE_OK) {
-          if (fetch.fet_kind == EK_PROJECT)
-            project_parse_json(entities);
-          else if (fetch.fet_kind == EK_PIPELINE)
-            pipelines_parse_json(entities);
+          if ((*entity)->ent_kind == EK_PROJECT)
+            project_parse_json(entity);
+          else if ((*entity)->ent_kind == EK_PIPELINE)
+            pipelines_parse_json(entity);
         }
       } else {
-        fprintf(stderr, "Failed to fetch from API: entity_i=%lld err=%d\n",
-                fetch.fet_entity_i, msg->msg);
+        fprintf(stderr, "Failed to fetch from API: err=%d\n", msg->msg);
+        // TODO: entity_pop?
       }
     }
     if (still_alive) curl_multi_wait(cm, NULL, 0, 100, NULL);
@@ -224,47 +220,30 @@ static void api_do_fetch(CURLM *cm, entity_t **entities) {
   } while (still_alive);
 }
 
-// static void api_projects_fetch(args_t *args) {
-//  api_do_fetch(cm, args);
-//
-//  for (u64 i = 0; i < buf_size(args->arg_project_ids); i++) {
-//    project_t *project = &args->arg_projects[i];
-//    project_parse_json(project);
-//  }
-//}
-//
-// static pipeline_t *api_pipelines_fetch(args_t *args) {
-//  for (u64 i = 0; i < buf_size(args->arg_projects); i++) {
-//    sdsclear(args->arg_projects[i].pro_api_data);
-//    project_pipelines_fetch_queue(cm, i, args);
-//  }
-//
-//  api_do_fetch(cm, args);
-//
-//  pipeline_t *pipelines = NULL;
-//  buf_grow(pipelines, 100);
-//  for (u64 i = 0; i < buf_size(args->arg_projects); i++) {
-//    project_t *project = &args->arg_projects[i];
-//    project_parse_pipelines_json(project, &pipelines);
-//  }
-//  return pipelines;
-//}
-
 static void *fetch(void *v_args) {
   args_t *args = v_args;
   curl_global_init(CURL_GLOBAL_ALL);
 
-  entity_t *entities = NULL;
-
   // Fetch projects
-  for (u64 i = 0; i < buf_size(args->arg_project_ids); i++)
-    project_queue_fetch(cm, i, args);
+  for (u64 i = 0; i < buf_size(args->arg_project_ids); i++) {
+    entity_t *entity = entity_new(EK_PROJECT);
+    project_t *project = &entity->ent_e.ent_project;
+    project_init(project, args->arg_project_ids[i]);
+    entity_push(entities, entity);
+
+    project_queue_fetch(cm, entity, args);
+  }
 
   for (;;) {
-    for (u64 i = 0; i < buf_size(args->arg_project_ids); i++)
-      pipelines_queue_fetch(cm, i, args);
+    for (u64 i = 0; i < buf_size(args->arg_project_ids); i++) {
+      entity_t *entity = entity_new(EK_PIPELINE);
+      pipeline_t *pipeline = &entity->ent_e.ent_pipeline;
+      pipeline_init(pipeline, args->arg_project_ids[i]);
+      entity_push(entities, entity);
+      pipelines_queue_fetch(cm, entity, args);
+    }
 
-    api_do_fetch(cm, &entities);
+    api_do_fetch(cm);
     lstack_push(&args->arg_channel, entities);
     sleep(5);
   }

@@ -29,7 +29,7 @@ typedef uint64_t u64;
 typedef uint16_t u16;
 
 typedef struct {
-  i64 pip_id;
+  i64 pip_id, pip_project_id;
   sds pip_vcs_ref, pip_url, pip_created_at, pip_updated_at, pip_status,
       pip_project_path_with_namespace;
 } pipeline_t;
@@ -41,19 +41,16 @@ typedef struct {
 
 typedef enum { EK_PROJECT, EK_PIPELINE } entity_kind_t;
 
-typedef struct {
+struct entity_t {
   entity_kind_t ent_kind;
   sds ent_fetch_data;
+  struct entity_t *ent_next;
   union {
     pipeline_t ent_pipeline;
     project_t ent_project;
   } ent_e;
-} entity_t;
-
-static void entity_init(entity_t *entity, entity_kind_t kind) {
-  entity->ent_kind = kind;
-  entity->ent_fetch_data = sdsempty();
-}
+};
+typedef struct entity_t entity_t;
 
 typedef struct {
   sds arg_base_url, arg_gitlab_token;
@@ -78,14 +75,15 @@ static void project_init(project_t *project, i64 id) {
   project->pro_api_data = sdsempty();
 }
 
-static void pipeline_init(pipeline_t *pipeline, sds project_name) {
+static void pipeline_init(pipeline_t *pipeline, i64 project_id) {
   pipeline->pip_id = 0;
+  pipeline->pip_project_id = project_id;
   pipeline->pip_vcs_ref = sdsempty();
   pipeline->pip_url = sdsempty();
   pipeline->pip_created_at = sdsempty();
   pipeline->pip_updated_at = sdsempty();
   pipeline->pip_status = sdsempty();
-  pipeline->pip_project_path_with_namespace = sdsdup(project_name);
+  pipeline->pip_project_path_with_namespace = sdsempty();
 }
 
 static void pipeline_release(pipeline_t *pipeline) {
@@ -102,3 +100,30 @@ static void pipeline_release(pipeline_t *pipeline) {
   sdsfree(pipeline->pip_project_path_with_namespace);
   pipeline->pip_project_path_with_namespace = NULL;
 }
+
+static entity_t *entity_new(entity_kind_t kind) {
+  entity_t *entity = calloc(1, sizeof(entity_t));
+  entity->ent_kind = kind;
+  entity->ent_fetch_data = sdsempty();
+  return entity;
+}
+
+static void entity_push(entity_t *entities, entity_t *entity) {
+  entity->ent_next = entities;
+  entities = entity;
+}
+
+static void entity_pop(entity_t *entities, entity_t *entity) {
+  entity_t *current = entities;
+  entity_t *previous = entities;
+  while (current && current->ent_next) {
+    if (current == entity) {
+      previous->ent_next = current->ent_next;
+      return;
+    }
+
+    previous = current;
+    current = current->ent_next;
+  }
+}
+
