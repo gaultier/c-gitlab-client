@@ -214,7 +214,7 @@ static void api_do_fetch(CURLM *cm, entity_t **entities) {
         }
       } else {
         fprintf(stderr, "Failed to fetch from API: entity_i=%lld err=%d\n",
-                entity_i, msg->msg);
+                fetch.fet_entity_i, msg->msg);
       }
     }
     if (still_alive) curl_multi_wait(cm, NULL, 0, 100, NULL);
@@ -255,10 +255,8 @@ static void *fetch(void *v_args) {
   entity_t *entities = NULL;
 
   // Fetch projects
-  for (u64 i = 0; i < buf_size(args->arg_project_ids); i++) {
-    const i64 id = args->arg_project_ids[i];
+  for (u64 i = 0; i < buf_size(args->arg_project_ids); i++)
     project_queue_fetch(cm, i, args);
-  }
 
   for (;;) {
     buf_trunc(json_tokens, 10 * 1024);  // 10 KiB
@@ -266,7 +264,7 @@ static void *fetch(void *v_args) {
     for (u64 i = 0; i < buf_size(args->arg_project_ids); i++)
       pipelines_queue_fetch(cm, i, args);
 
-    api_do_fetch(cm, args);
+    api_do_fetch(cm, &entities);
     lstack_push(&args->arg_channel, entities);
     sleep(5);
   }
