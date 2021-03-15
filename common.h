@@ -1,5 +1,6 @@
 #pragma once
 
+#include <curl/curl.h>
 #include <errno.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -8,6 +9,7 @@
 
 #include "deps/buf/buf.h"
 #include "deps/jsmn/jsmn.h"
+#include "deps/lstack/lstack.c"
 #include "deps/lstack/lstack.h"
 #include "deps/sds/sds.c"
 #include "deps/sds/sds.h"

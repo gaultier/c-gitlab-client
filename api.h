@@ -1,11 +1,6 @@
 #pragma once
 
-#include <curl/curl.h>
-
 #include "common.h"
-#include "deps/lstack/lstack.c"
-#include "deps/lstack/lstack.h"
-#include "deps/sds/sds.h"
 
 static jsmntok_t *json_tokens;
 static char url[4097];
