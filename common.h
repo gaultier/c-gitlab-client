@@ -39,6 +39,16 @@ typedef struct {
   sds pro_name, pro_path_with_namespace, pro_api_data;
 } project_t;
 
+typedef enum { EK_PROJECT, EK_PIPELINE } entity_kind_t;
+
+typedef struct {
+  entity_kind_t ent_kind;
+  union {
+    pipeline_t ent_pipeline;
+    project_t ent_project;
+  } ent_e;
+} entity_t;
+
 typedef struct {
   sds arg_base_url, arg_gitlab_token;
   u64 *arg_project_ids;

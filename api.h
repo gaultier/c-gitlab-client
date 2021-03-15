@@ -53,8 +53,7 @@ static void project_parse_json(project_t *project) {
   }
 }
 
-static void project_parse_pipelines_json(project_t *project,
-                                         pipeline_t **pipelines) {
+static void pipelines_json_parse(project_t *project, pipeline_t **pipelines) {
   assert(pipelines);
   buf_clear(json_tokens);
 
@@ -131,7 +130,7 @@ static void project_parse_pipelines_json(project_t *project,
   }
 }
 
-static size_t write_cb(char *data, size_t n, size_t l, void *userp) {
+static size_t curl_write_cb(char *data, size_t n, size_t l, void *userp) {
   i64 i = (i64)userp;
   project_t *project = &args.arg_projects[i];
   project->pro_api_data = sdscatlen(project->pro_api_data, data, n * l);
@@ -139,7 +138,7 @@ static size_t write_cb(char *data, size_t n, size_t l, void *userp) {
   return n * l;
 }
 
-static void project_fetch_queue(CURLM *cm, int i, args_t *args) {
+static void project_queue_fetch(CURLM *cm, int i, args_t *args) {
   memset(url, 0, sizeof(url));
 
   if (args->arg_gitlab_token)
@@ -151,14 +150,14 @@ static void project_fetch_queue(CURLM *cm, int i, args_t *args) {
              args->arg_project_ids[i]);
 
   CURL *eh = curl_easy_init();
-  curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, write_cb);
+  curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, curl_write_cb);
   curl_easy_setopt(eh, CURLOPT_WRITEDATA, i);
   curl_easy_setopt(eh, CURLOPT_URL, url);
   curl_easy_setopt(eh, CURLOPT_PRIVATE, i);
   curl_multi_add_handle(cm, eh);
 }
 
-static void project_pipelines_fetch_queue(CURLM *cm, int i, args_t *args) {
+static void project_pipelines_queue_fetch(CURLM *cm, int i, args_t *args) {
   memset(url, 0, sizeof(url));
 
   if (args->arg_gitlab_token)
@@ -169,14 +168,14 @@ static void project_pipelines_fetch_queue(CURLM *cm, int i, args_t *args) {
     snprintf(url, LEN0(url), "%s/api/v4/projects/%llu/pipelines",
              args->arg_base_url, args->arg_project_ids[i]);
   CURL *eh = curl_easy_init();
-  curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, write_cb);
+  curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, curl_write_cb);
   curl_easy_setopt(eh, CURLOPT_URL, url);
   curl_easy_setopt(eh, CURLOPT_WRITEDATA, i);
   curl_easy_setopt(eh, CURLOPT_PRIVATE, i);
   curl_multi_add_handle(cm, eh);
 }
 
-static void api_fetch(CURLM *cm, args_t *args) {
+static void api_do_fetch(CURLM *cm, args_t *args) {
   int still_alive = 1;
   int msgs_left = -1;
   do {
@@ -204,49 +203,51 @@ static void api_fetch(CURLM *cm, args_t *args) {
   } while (still_alive);
 }
 
-static void api_projects_fetch(args_t *args) {
-  for (u64 i = 0; i < buf_size(args->arg_project_ids); i++) {
-    const i64 id = args->arg_project_ids[i];
-
-    project_t project = {0};
-    project_init(&project, id);
-    buf_push(args->arg_projects, project);
-    project_fetch_queue(cm, i, args);
-  }
-  api_fetch(cm, args);
-
-  for (u64 i = 0; i < buf_size(args->arg_project_ids); i++) {
-    project_t *project = &args->arg_projects[i];
-    project_parse_json(project);
-  }
-}
-
-static pipeline_t *api_pipelines_fetch(args_t *args) {
-  for (u64 i = 0; i < buf_size(args->arg_projects); i++) {
-    sdsclear(args->arg_projects[i].pro_api_data);
-    project_pipelines_fetch_queue(cm, i, args);
-  }
-
-  api_fetch(cm, args);
-
-  pipeline_t *pipelines = NULL;
-  buf_grow(pipelines, 100);
-  for (u64 i = 0; i < buf_size(args->arg_projects); i++) {
-    project_t *project = &args->arg_projects[i];
-    project_parse_pipelines_json(project, &pipelines);
-  }
-  return pipelines;
-}
+// static void api_projects_fetch(args_t *args) {
+//  api_do_fetch(cm, args);
+//
+//  for (u64 i = 0; i < buf_size(args->arg_project_ids); i++) {
+//    project_t *project = &args->arg_projects[i];
+//    project_parse_json(project);
+//  }
+//}
+//
+// static pipeline_t *api_pipelines_fetch(args_t *args) {
+//  for (u64 i = 0; i < buf_size(args->arg_projects); i++) {
+//    sdsclear(args->arg_projects[i].pro_api_data);
+//    project_pipelines_fetch_queue(cm, i, args);
+//  }
+//
+//  api_do_fetch(cm, args);
+//
+//  pipeline_t *pipelines = NULL;
+//  buf_grow(pipelines, 100);
+//  for (u64 i = 0; i < buf_size(args->arg_projects); i++) {
+//    project_t *project = &args->arg_projects[i];
+//    project_parse_pipelines_json(project, &pipelines);
+//  }
+//  return pipelines;
+//}
 
 static void *fetch(void *v_args) {
   args_t *args = v_args;
   curl_global_init(CURL_GLOBAL_ALL);
 
-  api_projects_fetch(args);
+  entity_t *entities = NULL;
+
+  // Fetch projects
+  for (u64 i = 0; i < buf_size(args->arg_project_ids); i++) {
+    const i64 id = args->arg_project_ids[i];
+    project_queue_fetch(cm, i, args);
+  }
 
   for (;;) {
     buf_trunc(json_tokens, 10 * 1024);  // 10 KiB
-    pipeline_t *pipelines = api_pipelines_fetch(args);
+
+    for (u64 i = 0; i < buf_size(args->arg_project_ids); i++)
+      project_pipelines_queue_fetch(cm, i, args);
+
+    api_do_fetch(cm, args);
     lstack_push(&args->arg_channel, pipelines);
     sleep(5);
   }
