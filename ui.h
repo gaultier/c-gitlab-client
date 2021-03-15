@@ -33,9 +33,7 @@ static void table_resize(table_t* table) {
   table->tab_y = MAX(table->tab_y, table->tab_h);
 }
 
-static void table_calc_size(table_t* table) {
-  pipeline_t* pipeline = &buf_last(table->tab_pipelines);
-
+static void table_add_pipeline(table_t* table, pipeline_t* pipeline) {
   int col = 0;
   table->tab_max_width_cols[col] =
       MAX(table->tab_max_width_cols[col],
@@ -58,6 +56,7 @@ static void table_calc_size(table_t* table) {
       return;
     }
   }
+  buf_push(table->tab_pipelines, pipeline);
 }
 
 static void ui_init() {
@@ -217,8 +216,8 @@ static void ui_run(args_t* args) {
       }
       entity_pop(entities, entity);
       sdsfree(entity->ent_fetch_data);
+      table_add_pipeline(&table, &entity->ent_e.ent_pipeline);
     }
-    table_calc_size(&table);
 
     switch (event.type) {
       case TB_EVENT_RESIZE:
