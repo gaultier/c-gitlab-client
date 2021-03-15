@@ -52,6 +52,7 @@ static void table_pull_pipelines(table_t* table, args_t* args) {
 
       buf_push(table->tab_pipelines, *pipeline);
     }
+    buf_free(pipelines);
   }
 }
 
@@ -202,14 +203,9 @@ static void table_draw(table_t* table) {
 static void ui_draw(args_t* args) {
   table_init();
 
-  table_pull_pipelines(&table, args);
-
-  tb_clear();
-  table_draw(&table);
-  tb_present();
-
   struct tb_event event;
-  while (tb_poll_event(&event)) {
+  while (1) {
+    tb_peek_event(&event, 500);
     table_pull_pipelines(&table, args);
 
     switch (event.type) {
@@ -234,7 +230,7 @@ static void ui_draw(args_t* args) {
         } else if (event.key == TB_KEY_ESC || event.key == TB_KEY_CTRL_C ||
                    event.key == TB_KEY_CTRL_D) {
           tb_shutdown();
-          return;
+          exit(0);
         } else if (event.ch == 'G') {
           table_scroll_bottom(&table);
         } else if (event.ch == 'g') {
