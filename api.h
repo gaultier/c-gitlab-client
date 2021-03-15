@@ -28,7 +28,8 @@ static int json_eq(const char *json, const jsmntok_t *tok, const char *s,
 }
 
 static void project_parse_json(entity_t **entities) {
-  buf_trunc(json_tokens, 10 * 1024);
+  buf_trunc(json_tokens, 10 * 1024);  // 10 KiB
+  buf_clear(json_tokens);
 
   jsmn_parser parser;
   jsmn_init(&parser);
@@ -68,6 +69,7 @@ static void project_parse_json(entity_t **entities) {
 }
 
 static void pipelines_parse_json(entity_t **entities) {
+  buf_trunc(json_tokens, 10 * 1024);  // 10 KiB
   buf_clear(json_tokens);
 
   jsmn_parser parser;
@@ -259,8 +261,6 @@ static void *fetch(void *v_args) {
     project_queue_fetch(cm, i, args);
 
   for (;;) {
-    buf_trunc(json_tokens, 10 * 1024);  // 10 KiB
-
     for (u64 i = 0; i < buf_size(args->arg_project_ids); i++)
       pipelines_queue_fetch(cm, i, args);
 
