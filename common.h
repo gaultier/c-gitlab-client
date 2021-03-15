@@ -71,3 +71,18 @@ static void pipeline_init(pipeline_t *pipeline, sds project_name) {
   pipeline->pip_status = sdsempty();
   pipeline->pip_project_path_with_namespace = sdsdup(project_name);
 }
+
+static void pipeline_release(pipeline_t *pipeline) {
+  sdsfree(pipeline->pip_vcs_ref);
+  pipeline->pip_vcs_ref = NULL;
+  sdsfree(pipeline->pip_url);
+  pipeline->pip_url = NULL;
+  sdsfree(pipeline->pip_created_at);
+  pipeline->pip_created_at = NULL;
+  sdsfree(pipeline->pip_updated_at);
+  pipeline->pip_updated_at = NULL;
+  sdsfree(pipeline->pip_status);
+  pipeline->pip_status = NULL;
+  sdsfree(pipeline->pip_project_path_with_namespace);
+  pipeline->pip_project_path_with_namespace = NULL;
+}

@@ -65,11 +65,11 @@ int main(int argc, char* argv[]) {
   }
   buf_grow(args.arg_projects, buf_size(args.arg_project_ids));
 
+  ui_init();
   projects_fetch(&args);
 
   pthread_t fetch_thread;
   pthread_create(&fetch_thread, NULL, fetch, &args);
 
-  ui_init();
   ui_draw(&args);
 }
