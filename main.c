@@ -72,6 +72,4 @@ int main(int argc, char* argv[]) {
 
   ui_init();
   ui_draw(&args);
-
-  pthread_join(fetch_thread, NULL);
 }

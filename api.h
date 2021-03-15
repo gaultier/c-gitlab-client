@@ -52,6 +52,7 @@ static void project_parse_json(project_t *project) {
 
 static void project_parse_pipelines_json(project_t *project,
                                          pipeline_t **pipelines) {
+  assert(pipelines);
   buf_clear(json_tokens);
 
   jsmn_parser parser;
@@ -72,10 +73,10 @@ static void project_parse_pipelines_json(project_t *project,
   for (i64 i = 1; i < res; i++) {
     const jsmntok_t *const tok = &json_tokens[i];
     if (tok->type == JSMN_OBJECT) {
-      pipeline_t pip;
-      pipeline_init(&pip, project->pro_path_with_namespace);
-      buf_push(*pipelines, pip);
-      pipeline = &(*pipelines)[buf_size(pipelines) - 1];
+      buf_push(*pipelines, ((pipeline_t){0}));
+      assert(*pipelines);
+      pipeline = &((*pipelines)[buf_size(*pipelines) - 1]);
+      pipeline_init(pipeline, project->pro_path_with_namespace);
       continue;
     }
 
@@ -185,8 +186,8 @@ static void api_fetch(CURLM *cm, args_t *args) {
       curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, &project_i);
 
       if (msg->msg == CURLMSG_DONE) {
-        fprintf(stderr, "R: %d - %s\n", msg->data.result,
-                curl_easy_strerror(msg->data.result));
+        // fprintf(stderr, "R: %d - %s\n", msg->data.result,
+        //        curl_easy_strerror(msg->data.result));
         curl_multi_remove_handle(cm, e);
         curl_easy_cleanup(e);
       } else {
@@ -232,6 +233,7 @@ static pipeline_t *pipelines_fetch(args_t *args) {
   curl_multi_cleanup(cm);
 
   pipeline_t *pipelines = NULL;
+  buf_grow(pipelines, 100);
   for (u64 i = 0; i < buf_size(args->projects); i++) {
     project_t *project = &args->projects[i];
     project_parse_pipelines_json(project, &pipelines);
