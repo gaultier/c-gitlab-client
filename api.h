@@ -184,8 +184,6 @@ static void api_do_fetch(CURLM *cm, args_t *args) {
     CURLMsg *msg;
     while ((msg = curl_multi_info_read(cm, &msgs_left))) {
       CURL *e = msg->easy_handle;
-      i64 project_i = 0;
-      curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, &project_i);
 
       if (msg->msg == CURLMSG_DONE) {
         // fprintf(stderr, "R: %d - %s\n", msg->data.result,
@@ -193,9 +191,10 @@ static void api_do_fetch(CURLM *cm, args_t *args) {
         curl_multi_remove_handle(cm, e);
         curl_easy_cleanup(e);
       } else {
-        project_t *project = &args->arg_projects[project_i];
-        fprintf(stderr, "Failed to fetch from API: id=%lld err=%d\n",
-                project->pro_id, msg->msg);
+        i64 entity_i = 0;
+        curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, &entity_i);
+        fprintf(stderr, "Failed to fetch from API: entity_i=%lld err=%d\n",
+                entity_i, msg->msg);
       }
     }
     if (still_alive) curl_multi_wait(cm, NULL, 0, 100, NULL);
