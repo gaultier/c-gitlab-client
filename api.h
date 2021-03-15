@@ -139,9 +139,8 @@ static void pipelines_parse_json(entity_t *entity, lstack_t *channel) {
 }
 
 static size_t curl_write_cb(char *data, size_t n, size_t l, void *userp) {
-  i64 i = (i64)userp;
-  project_t *project = &args.arg_projects[i];
-  project->pro_api_data = sdscatlen(project->pro_api_data, data, n * l);
+  entity_t *entity = userp;
+  entity->ent_fetch_data = sdscatlen(entity->ent_fetch_data, data, n * l);
 
   return n * l;
 }

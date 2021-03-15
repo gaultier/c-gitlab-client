@@ -67,10 +67,24 @@ int main(int argc, char* argv[]) {
   }
   buf_grow(args.arg_projects, buf_size(args.arg_project_ids));
 
-  ui_init();
+  // ui_init();
 
   pthread_t fetch_thread;
   pthread_create(&fetch_thread, NULL, fetch, &args);
 
-  ui_draw(&args);
+  // ui_draw(&args);
+  entity_t* entity = NULL;
+  while ((entity = lstack_pop(&args.arg_channel))) {
+    if (entity->ent_kind == EK_PROJECT) {
+      project_t* project = &entity->ent_e.ent_project;
+      printf("Project: id=%lld name=%s path=%s\n", project->pro_id,
+             project->pro_name, project->pro_path_with_namespace);
+    } else if (entity->ent_kind == EK_PIPELINE) {
+      pipeline_t* pipeline = &entity->ent_e.ent_pipeline;
+      printf("Pipeline: id=%lld created=%s updated=%s status=%s ref=%s\n",
+             pipeline->pip_id, pipeline->pip_created_at,
+             pipeline->pip_updated_at, pipeline->pip_status,
+             pipeline->pip_vcs_ref);
+    }
+  }
 }

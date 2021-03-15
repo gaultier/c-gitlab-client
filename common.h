@@ -1,6 +1,5 @@
 #pragma once
 
-#include <curl/curl.h>
 #include <errno.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -36,7 +35,7 @@ typedef struct {
 
 typedef struct {
   i64 pro_id;
-  sds pro_name, pro_path_with_namespace, pro_api_data;
+  sds pro_name, pro_path_with_namespace;
 } project_t;
 
 typedef enum { EK_PROJECT, EK_PIPELINE } entity_kind_t;
@@ -72,7 +71,6 @@ static void project_init(project_t *project, i64 id) {
   project->pro_id = id;
   project->pro_name = sdsempty();
   project->pro_path_with_namespace = sdsempty();
-  project->pro_api_data = sdsempty();
 }
 
 static void pipeline_init(pipeline_t *pipeline, i64 project_id) {
