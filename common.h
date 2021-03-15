@@ -40,20 +40,20 @@ typedef struct {
 } project_t;
 
 typedef struct {
-  sds base_url, token;
-  u64 *project_ids;
+  sds arg_base_url, arg_gitlab_token;
+  u64 *arg_project_ids;
 
-  project_t *projects;
-  lstack_t pipelines;
+  project_t *arg_projects;
+  lstack_t arg_channel;
 } args_t;
 
-static void args_init(args_t *args) {
-  args->base_url = sdsempty();
-  args->token = sdsempty();
-  lstack_init(&args->pipelines, 500);
-}
-
 static args_t args;
+
+static void args_init(args_t *args) {
+  args->arg_base_url = sdsempty();
+  args->arg_gitlab_token = sdsempty();
+  lstack_init(&args->arg_channel, 500);
+}
 
 static void project_init(project_t *project, i64 id) {
   project->pro_id = id;

@@ -130,7 +130,7 @@ static void project_parse_pipelines_json(project_t *project,
 
 static size_t write_cb(char *data, size_t n, size_t l, void *userp) {
   i64 i = (i64)userp;
-  project_t *project = &args.projects[i];
+  project_t *project = &args.arg_projects[i];
   project->pro_api_data = sdscatlen(project->pro_api_data, data, n * l);
 
   return n * l;
@@ -139,13 +139,13 @@ static size_t write_cb(char *data, size_t n, size_t l, void *userp) {
 static void project_fetch_queue(CURLM *cm, int i, args_t *args) {
   memset(url, 0, sizeof(url));
 
-  if (args->token)
-    snprintf(url, LEN0(url),
-             "%s/api/v4/projects/%llu?simple=true&private_token=%s",
-             args->base_url, args->project_ids[i], args->token);
+  if (args->arg_gitlab_token)
+    snprintf(
+        url, LEN0(url), "%s/api/v4/projects/%llu?simple=true&private_token=%s",
+        args->arg_base_url, args->arg_project_ids[i], args->arg_gitlab_token);
   else
-    snprintf(url, LEN0(url), "%s/api/v4/projects/%llu", args->base_url,
-             args->project_ids[i]);
+    snprintf(url, LEN0(url), "%s/api/v4/projects/%llu", args->arg_base_url,
+             args->arg_project_ids[i]);
 
   CURL *eh = curl_easy_init();
   curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, write_cb);
@@ -158,13 +158,13 @@ static void project_fetch_queue(CURLM *cm, int i, args_t *args) {
 static void project_pipelines_fetch_queue(CURLM *cm, int i, args_t *args) {
   memset(url, 0, sizeof(url));
 
-  if (args->token)
-    snprintf(url, LEN0(url),
-             "%s/api/v4/projects/%llu/pipelines?private_token=%s",
-             args->base_url, args->project_ids[i], args->token);
+  if (args->arg_gitlab_token)
+    snprintf(
+        url, LEN0(url), "%s/api/v4/projects/%llu/pipelines?private_token=%s",
+        args->arg_base_url, args->arg_project_ids[i], args->arg_gitlab_token);
   else
     snprintf(url, LEN0(url), "%s/api/v4/projects/%llu/pipelines",
-             args->base_url, args->project_ids[i]);
+             args->arg_base_url, args->arg_project_ids[i]);
   CURL *eh = curl_easy_init();
   curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, write_cb);
   curl_easy_setopt(eh, CURLOPT_URL, url);
@@ -191,7 +191,7 @@ static void api_fetch(CURLM *cm, args_t *args) {
         curl_multi_remove_handle(cm, e);
         curl_easy_cleanup(e);
       } else {
-        project_t *project = &args->projects[project_i];
+        project_t *project = &args->arg_projects[project_i];
         fprintf(stderr, "Failed to fetch from API: id=%lld err=%d\n",
                 project->pro_id, msg->msg);
       }
@@ -204,19 +204,19 @@ static void api_fetch(CURLM *cm, args_t *args) {
 static void projects_fetch(args_t *args) {
   CURLM *cm = curl_multi_init();
 
-  for (u64 i = 0; i < buf_size(args->project_ids); i++) {
-    const i64 id = args->project_ids[i];
+  for (u64 i = 0; i < buf_size(args->arg_project_ids); i++) {
+    const i64 id = args->arg_project_ids[i];
 
     project_t project = {0};
     project_init(&project, id);
-    buf_push(args->projects, project);
+    buf_push(args->arg_projects, project);
     project_fetch_queue(cm, i, args);
   }
   api_fetch(cm, args);
   curl_multi_cleanup(cm);
 
-  for (u64 i = 0; i < buf_size(args->project_ids); i++) {
-    project_t *project = &args->projects[i];
+  for (u64 i = 0; i < buf_size(args->arg_project_ids); i++) {
+    project_t *project = &args->arg_projects[i];
     project_parse_json(project);
   }
 }
@@ -224,8 +224,8 @@ static void projects_fetch(args_t *args) {
 static pipeline_t *pipelines_fetch(args_t *args) {
   CURLM *cm = curl_multi_init();
 
-  for (u64 i = 0; i < buf_size(args->projects); i++) {
-    sdsclear(args->projects[i].pro_api_data);
+  for (u64 i = 0; i < buf_size(args->arg_projects); i++) {
+    sdsclear(args->arg_projects[i].pro_api_data);
     project_pipelines_fetch_queue(cm, i, args);
   }
 
@@ -234,8 +234,8 @@ static pipeline_t *pipelines_fetch(args_t *args) {
 
   pipeline_t *pipelines = NULL;
   buf_grow(pipelines, 100);
-  for (u64 i = 0; i < buf_size(args->projects); i++) {
-    project_t *project = &args->projects[i];
+  for (u64 i = 0; i < buf_size(args->arg_projects); i++) {
+    project_t *project = &args->arg_projects[i];
     project_parse_pipelines_json(project, &pipelines);
   }
   return pipelines;
@@ -248,7 +248,7 @@ static void *fetch(void *v_args) {
   for (;;) {
     buf_trunc(json_tokens, 10 * 1024);  // 10 KiB
     pipeline_t *pipelines = pipelines_fetch(args);
-    lstack_push(&args->pipelines, pipelines);
+    lstack_push(&args->arg_channel, pipelines);
     sleep(5);
   }
   return NULL;

@@ -32,10 +32,10 @@ int main(int argc, char* argv[]) {
   while ((ch = getopt_long(argc, argv, "ht:u:", options, &index)) != -1) {
     switch (ch) {
       case 'u':
-        args.base_url = sdscat(args.base_url, optarg);
+        args.arg_base_url = sdscat(args.arg_base_url, optarg);
         break;
       case 't':
-        args.token = sdscat(args.token, optarg);
+        args.arg_gitlab_token = sdscat(args.arg_gitlab_token, optarg);
         break;
       case 'h':
       case '?':
@@ -47,7 +47,7 @@ int main(int argc, char* argv[]) {
   argc -= optind;
   argv += optind;
 
-  if (sdslen(args.base_url) == 0) {
+  if (sdslen(args.arg_base_url) == 0) {
     fprintf(stderr, "Missing url.\n");
     help_print(argv0);
     return 1;
@@ -61,9 +61,9 @@ int main(int argc, char* argv[]) {
       help_print(argv0);
       return 1;
     }
-    buf_push(args.project_ids, id);
+    buf_push(args.arg_project_ids, id);
   }
-  buf_grow(args.projects, buf_size(args.project_ids));
+  buf_grow(args.arg_projects, buf_size(args.arg_project_ids));
 
   projects_fetch(&args);
 

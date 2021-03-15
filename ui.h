@@ -33,10 +33,10 @@ static void table_resize(table_t* table) {
 }
 
 static void table_pull_pipelines(table_t* table, args_t* args) {
-  pipeline_t* pipelines = NULL;
-  while ((pipelines = lstack_pop(&args->pipelines))) {
-    for (int j = 0; j < (int)buf_size(pipelines); j++) {
-      pipeline_t* pipeline = &pipelines[j];
+  pipeline_t* arg_channel = NULL;
+  while ((arg_channel = lstack_pop(&args->arg_channel))) {
+    for (int j = 0; j < (int)buf_size(arg_channel); j++) {
+      pipeline_t* pipeline = &arg_channel[j];
 
       int col = 0;
       table->tab_max_width_cols[col] =
@@ -55,7 +55,7 @@ static void table_pull_pipelines(table_t* table, args_t* args) {
 
       buf_push(table->tab_pipelines, *pipeline);
     }
-    buf_free(pipelines);
+    buf_free(arg_channel);
   }
 }
 
