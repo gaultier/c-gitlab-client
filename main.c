@@ -75,7 +75,10 @@ int main(int argc, char* argv[]) {
   entity_t* entity = NULL;
   while (true) {
     entity = lstack_pop(&args.arg_channel);
-    if (!entity) continue;
+    if (!entity) {
+      usleep(100 * 1000);
+      continue;
+    }
 
     if (entity->ent_kind == EK_PROJECT) {
       project_t* project = &entity->ent_e.ent_project;

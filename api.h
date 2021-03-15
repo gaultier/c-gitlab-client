@@ -130,6 +130,8 @@ static void pipelines_parse_json(entity_t *dummy_entity, lstack_t *channel) {
           sdscatlen(pipeline->pip_url, value, t->end - t->start);
     }
   }
+  entity_pop(entities, dummy_entity);
+  entity_release(dummy_entity);
 }
 
 static size_t curl_write_cb(char *data, size_t n, size_t l, void *userp) {
