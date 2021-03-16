@@ -4,6 +4,7 @@
 
 #define JSON_PARSE_KV_STRING(key, json_tokens, i, s, field) \
   do {                                                      \
+    jsmntok_t *const tok = &json_tokens[i];                 \
     if (json_eq(s, tok, key, LEN0(key)) == 0) {             \
       const jsmntok_t *const t = &json_tokens[++i];         \
       const char *const value = s + t->start;               \
@@ -13,6 +14,7 @@
 
 #define JSON_PARSE_KV_NUMBER(key, json_tokens, i, s, field) \
   do {                                                      \
+    jsmntok_t *const tok = &json_tokens[i];                 \
     if (json_eq(s, tok, key, LEN0(key)) == 0) {             \
       const jsmntok_t *const t = &json_tokens[++i];         \
       if (t->type != JSMN_PRIMITIVE) break;                 \
@@ -55,8 +57,6 @@ static void project_parse_json(entity_t *entity, lstack_t *channel) {
   }
 
   for (i64 i = 1; i < res; i++) {
-    jsmntok_t *const tok = &json_tokens[i];
-
     JSON_PARSE_KV_STRING("name", json_tokens, i, s, project->pro_name);
     JSON_PARSE_KV_STRING("path_with_namespace", json_tokens, i, s,
                          project->pro_path_with_namespace);
