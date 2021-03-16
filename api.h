@@ -138,13 +138,20 @@ static void pipeline_parse_json(entity_t *entity, lstack_t *channel) {
 
   struct tm time = {0};
   if (strptime(pipeline->pip_created_at, "%FT%T", &time))
-    pipeline->pip_created_at_time = mktime(&time);
+    pipeline->pip_created_at_time = timegm(&time);
+
+  time = (struct tm){0};
   if (strptime(pipeline->pip_updated_at, "%FT%T", &time))
-    pipeline->pip_updated_at_time = mktime(&time);
+    pipeline->pip_updated_at_time = timegm(&time);
+
+  time = (struct tm){0};
   if (strptime(pipeline->pip_started_at, "%FT%T", &time))
-    pipeline->pip_started_at_time = mktime(&time);
+    pipeline->pip_started_at_time = timegm(&time);
+
+  time = (struct tm){0};
   if (strptime(pipeline->pip_finished_at, "%FT%T", &time))
-    pipeline->pip_finished_at_time = mktime(&time);
+    pipeline->pip_finished_at_time = timegm(&time);
+
   pipeline->pip_duration = sdsgrowzero(pipeline->pip_duration, 20);
   int len = common_duration_second_to_short(pipeline->pip_duration,
                                             sdsalloc(pipeline->pip_duration),
@@ -185,9 +192,9 @@ static void pipelines_parse_json(entity_t *dummy_entity, args_t *args) {
         // Post-processing
         struct tm time = {0};
         strptime(pipeline->pip_created_at, "%FT%T", &time);
-        pipeline->pip_created_at_time = mktime(&time);
+        pipeline->pip_created_at_time = timegm(&time);
         strptime(pipeline->pip_updated_at, "%FT%T", &time);
-        pipeline->pip_updated_at_time = mktime(&time);
+        pipeline->pip_updated_at_time = timegm(&time);
         pipeline->pip_id_s = sdsfromlonglong(pipeline->pip_id);
 
         lstack_push(&args->arg_channel, e_pipeline);
