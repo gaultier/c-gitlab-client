@@ -279,7 +279,7 @@ static void api_do_fetch(CURLM *cm) {
         curl_easy_cleanup(e);
       } else {
         fprintf(stderr, "Failed to fetch from API: err=%d\n", msg->msg);
-        // TODO: entity_pop?
+        entity_release(entity);
       }
     }
     if (still_alive) curl_multi_wait(cm, NULL, 0, 100, NULL);
