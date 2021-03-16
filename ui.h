@@ -34,10 +34,14 @@ static void table_resize(table_t* table) {
   table->tab_y = MAX(table->tab_y, table->tab_h);
 }
 
-static void table_add_pipeline(table_t* table, pipeline_t* pipeline) {
+static void table_add_or_update_pipeline(table_t* table, pipeline_t* pipeline) {
   for (int i = 0; i < (int)buf_size(table->tab_pipelines); i++) {
     if (table->tab_pipelines[i].pip_id == pipeline->pip_id) {
       /* pipeline_release(&table->tab_pipelines[i]); */
+      if (sdslen(table->tab_pipelines[i].pip_project_path_with_namespace)) {
+        pipeline->pip_project_path_with_namespace =
+            table->tab_pipelines[i].pip_project_path_with_namespace;
+      }
       table->tab_pipelines[i] = *pipeline;
       return;
     }
@@ -216,7 +220,7 @@ static void table_update_pipelines_on_project_received(project_t* project) {
     if (pipeline->pip_project_id == project->pro_id) {
       sdsfree(pipeline->pip_project_path_with_namespace);
       pipeline->pip_project_path_with_namespace =
-          sdsdup(project->pro_path_with_namespace);
+          project->pro_path_with_namespace;
     }
   }
 }
@@ -234,7 +238,7 @@ static void ui_run(args_t* args) {
         table_update_pipelines_on_project_received(
             &buf_last(table.tab_projects));
       } else if (entity->ent_kind == EK_PIPELINE) {
-        table_add_pipeline(&table, &entity->ent_e.ent_pipeline);
+        table_add_or_update_pipeline(&table, &entity->ent_e.ent_pipeline);
       }
       entity_pop(entities, entity);
       sdsfree(entity->ent_fetch_data);
