@@ -26,7 +26,6 @@
 static jsmntok_t *json_tokens;
 static char url[4097];
 static CURLM *cm = NULL;
-static entity_t *entities = NULL;
 
 static void api_init() { cm = curl_multi_init(); }
 
@@ -182,7 +181,6 @@ static void pipelines_parse_json(entity_t *dummy_entity, args_t *args) {
     JSON_PARSE_KV_STRING("status", json_tokens, i, s, pipeline->pip_status);
     JSON_PARSE_KV_STRING("web_url", json_tokens, i, s, pipeline->pip_url);
   }
-  entity_pop(entities, dummy_entity);
   entity_release(dummy_entity);
 }
 
@@ -274,7 +272,6 @@ static void *fetch(void *v_args) {
     entity_t *entity = entity_new(EK_FETCH_PROJECT);
     project_t *project = &entity->ent_e.ent_project;
     project_init(project, args->arg_project_ids[i]);
-    entity_push(entities, entity);
 
     project_queue_fetch(cm, entity, args);
   }
@@ -284,7 +281,6 @@ static void *fetch(void *v_args) {
       entity_t *entity = entity_new(EK_FETCH_PIPELINES);
       pipeline_t *pipeline = &entity->ent_e.ent_pipeline;
       pipeline_init(pipeline, args->arg_project_ids[i]);
-      entity_push(entities, entity);
       pipelines_queue_fetch(cm, entity, args);
     }
 

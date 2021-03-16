@@ -64,7 +64,6 @@ typedef enum {
 struct entity_t {
   entity_kind_t ent_kind;
   sds ent_fetch_data;
-  struct entity_t *ent_next;
   union {
     pipeline_t ent_pipeline;
     project_t ent_project;
@@ -138,25 +137,6 @@ static entity_t *entity_new(entity_kind_t kind) {
   entity->ent_kind = kind;
   entity->ent_fetch_data = sdsempty();
   return entity;
-}
-
-static void entity_push(entity_t *entities, entity_t *entity) {
-  entity->ent_next = entities;
-  entities = entity;
-}
-
-static void entity_pop(entity_t *entities, entity_t *entity) {
-  entity_t *current = entities;
-  entity_t *previous = entities;
-  while (current && current->ent_next) {
-    if (current == entity) {
-      previous->ent_next = current->ent_next;
-      return;
-    }
-
-    previous = current;
-    current = current->ent_next;
-  }
 }
 
 static void entity_release(entity_t *entity) {

@@ -279,7 +279,6 @@ static void table_pull_entities(args_t* args) {
       table_add_or_update_pipeline(&table, &entity->ent_e.ent_pipeline);
     } else
       assert(0 && "Unreachable");
-    entity_pop(entities, entity);
     sdsfree(entity->ent_fetch_data);
   }
   table_update_pipelines_with_projects_info();
