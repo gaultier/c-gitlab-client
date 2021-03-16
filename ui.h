@@ -24,13 +24,17 @@ static void table_scroll_top(table_t* table) {
 }
 
 static void table_scroll_bottom(table_t* table) {
-  table->tab_y = MAX(0, buf_size(table->tab_pipelines) - table->tab_h);
-  table->tab_selected = buf_size(table->tab_pipelines) - 1;
+  table->tab_y = buf_size(table->tab_pipelines) - table->tab_h;
+  if (table->tab_y < 0) table->tab_y = 0;
+  if (table->tab_y > (int)buf_size(table->tab_pipelines))
+    table->tab_y = buf_size(table->tab_pipelines) - 1;
+
+  table->tab_selected = MAX(0, buf_size(table->tab_pipelines) - 1);
 }
 
 static void table_resize(table_t* table) {
   table->tab_h = tb_height() - 1;
-  table->tab_y = MAX(table->tab_y, table->tab_h);
+  table->tab_y = MAX(0, MAX(table->tab_y, table->tab_h));
 }
 
 static void table_add_or_update_pipeline(table_t* table, pipeline_t* pipeline) {
@@ -174,6 +178,9 @@ static void table_header_draw(table_t* table) {
 
 static void table_draw(table_t* table) {
   table_header_draw(table);
+  CHECK(table->tab_h, >, 0, "%d");
+  CHECK(table->tab_y, >=, 0, "%d");
+  CHECK(table->tab_selected, >=, 0, "%d");
 
   time_t now_epoch = time(NULL);
   struct tm now;
@@ -182,7 +189,8 @@ static void table_draw(table_t* table) {
   for (int i = 0; i < table->tab_h; i++) {
     int p = i + table->tab_y, y = i + 1, x = 0, col = 0;
 
-    if (p >= (int)buf_size(table->tab_pipelines)) return;
+    CHECK(p, >=, 0, "%d");
+    if (p >= (int)buf_size(table->tab_pipelines)) return;  // Finished
     const pipeline_t* const pipeline = &table->tab_pipelines[p];
 
     int fg = TB_BLUE, bg = TB_DEFAULT;
@@ -319,6 +327,10 @@ static void ui_run(args_t* args) {
         tb_present();
         break;
       default:
+        tb_clear();
+        table_resize(&table);
+        table_draw(&table);
+        tb_present();
         break;
     }
   }

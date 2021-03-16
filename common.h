@@ -25,6 +25,19 @@
 
 #define LEN0(s) (sizeof(s) - 1)
 
+#define STR(s) #s
+
+#define CHECK(a, cond, b, fmt)                                                \
+  do {                                                                        \
+    if (!((a)cond(b))) {                                                      \
+      fprintf(stderr,                                                         \
+              __FILE__ ":%d:CHECK failed: %s " STR(                           \
+                  cond) " %s i.e.: " fmt " " STR(cond) " " fmt " is false\n", \
+              __LINE__, STR(a), STR(b), a, b);                                \
+      assert(0);                                                              \
+    }                                                                         \
+  } while (0)
+
 typedef int64_t i64;
 typedef uint64_t u64;
 typedef uint16_t u16;
