@@ -46,21 +46,10 @@ static void project_parse_json(entity_t *entity, lstack_t *channel) {
 
   for (i64 i = 1; i < res; i++) {
     jsmntok_t *const tok = &json_tokens[i];
-    if (tok->type != JSMN_STRING)
-      continue;
 
-    else if (json_eq(s, tok, "name", LEN0("name")) == 0) {
-      project->pro_name =
-          sdscatlen(project->pro_name, s + json_tokens[i + 1].start,
-                    json_tokens[i + 1].end - json_tokens[i + 1].start);
-      i++;
-    } else if (json_eq(s, tok, "path_with_namespace",
-                       LEN0("path_with_namespace")) == 0) {
-      project->pro_path_with_namespace = sdscatlen(
-          project->pro_path_with_namespace, s + json_tokens[i + 1].start,
-          json_tokens[i + 1].end - json_tokens[i + 1].start);
-      i++;
-    }
+    JSON_PARSE_STRING_KV("name", json_tokens, i, s, project->pro_name);
+    JSON_PARSE_STRING_KV("path_with_namespace", json_tokens, i, s,
+                         project->pro_path_with_namespace);
   }
   lstack_push(channel, entity);
 }
