@@ -5,6 +5,8 @@
 #include "deps/termbox/src/termbox.h"
 #include "deps/termbox/src/utf8.c"
 
+static const int ui_margin = 1;
+
 typedef struct {
   int tab_max_width_cols[6];
   int tab_y, tab_h, tab_selected;
@@ -99,38 +101,38 @@ static void table_header_draw(table_t* table) {
   {
     const char header[] = "PROJECT";
     ui_string_draw(header, LEN0(header), &x, 0, TB_WHITE | TB_BOLD, TB_DEFAULT);
-    ui_blank_draw(2 + table->tab_max_width_cols[col++] - LEN0(header), &x, 0,
-                  TB_DEFAULT, TB_DEFAULT);
+    ui_blank_draw(ui_margin + table->tab_max_width_cols[col++] - LEN0(header),
+                  &x, 0, TB_DEFAULT, TB_DEFAULT);
   }
   {
     const char header[] = "REF";
     ui_string_draw(header, LEN0(header), &x, 0, TB_WHITE | TB_BOLD, TB_DEFAULT);
-    ui_blank_draw(2 + table->tab_max_width_cols[col++] - LEN0(header), &x, 0,
-                  TB_DEFAULT, TB_DEFAULT);
+    ui_blank_draw(ui_margin + table->tab_max_width_cols[col++] - LEN0(header),
+                  &x, 0, TB_DEFAULT, TB_DEFAULT);
   }
   {
     const char header[] = "CREATED";
     ui_string_draw(header, LEN0(header), &x, 0, TB_WHITE | TB_BOLD, TB_DEFAULT);
-    ui_blank_draw(2 + table->tab_max_width_cols[col++] - LEN0(header), &x, 0,
-                  TB_DEFAULT, TB_DEFAULT);
+    ui_blank_draw(ui_margin + table->tab_max_width_cols[col++] - LEN0(header),
+                  &x, 0, TB_DEFAULT, TB_DEFAULT);
   }
   {
     const char header[] = "UPDATED";
     ui_string_draw(header, LEN0(header), &x, 0, TB_WHITE | TB_BOLD, TB_DEFAULT);
-    ui_blank_draw(2 + table->tab_max_width_cols[col++] - LEN0(header), &x, 0,
-                  TB_DEFAULT, TB_DEFAULT);
+    ui_blank_draw(ui_margin + table->tab_max_width_cols[col++] - LEN0(header),
+                  &x, 0, TB_DEFAULT, TB_DEFAULT);
   }
   {
     const char header[] = "DURATION";
     ui_string_draw(header, LEN0(header), &x, 0, TB_WHITE | TB_BOLD, TB_DEFAULT);
-    ui_blank_draw(2 + table->tab_max_width_cols[col++] - LEN0(header), &x, 0,
-                  TB_DEFAULT, TB_DEFAULT);
+    ui_blank_draw(ui_margin + table->tab_max_width_cols[col++] - LEN0(header),
+                  &x, 0, TB_DEFAULT, TB_DEFAULT);
   }
   {
     const char header[] = "STATUS";
     ui_string_draw(header, LEN0(header), &x, 0, TB_WHITE | TB_BOLD, TB_DEFAULT);
-    ui_blank_draw(2 + table->tab_max_width_cols[col++] - LEN0(header), &x, 0,
-                  TB_DEFAULT, TB_DEFAULT);
+    ui_blank_draw(ui_margin + table->tab_max_width_cols[col++] - LEN0(header),
+                  &x, 0, TB_DEFAULT, TB_DEFAULT);
   }
   ui_blank_draw(tb_width() - x, &x, 0, TB_DEFAULT, TB_DEFAULT);
 }
@@ -160,16 +162,16 @@ static void table_draw(table_t* table) {
       ui_string_draw(pipeline->pip_project_path_with_namespace,
                      sdslen(pipeline->pip_project_path_with_namespace), &x, y,
                      fg, bg);
-      ui_blank_draw(2 + table->tab_max_width_cols[col++] -
+      ui_blank_draw(ui_margin + table->tab_max_width_cols[col++] -
                         sdslen(pipeline->pip_project_path_with_namespace),
                     &x, y, fg, bg);
     }
     {
       ui_string_draw(pipeline->pip_vcs_ref, sdslen(pipeline->pip_vcs_ref), &x,
                      y, fg, bg);
-      ui_blank_draw(
-          2 + table->tab_max_width_cols[col++] - sdslen(pipeline->pip_vcs_ref),
-          &x, y, fg, bg);
+      ui_blank_draw(ui_margin + table->tab_max_width_cols[col++] -
+                        sdslen(pipeline->pip_vcs_ref),
+                    &x, y, fg, bg);
     }
     char res[10] = "";
     int width = 0;
@@ -178,22 +180,22 @@ static void table_draw(table_t* table) {
       u64 diff = difftime(now, pipeline->pip_created_at_time);
       width = common_duration_second_to_short(res, LEN0(res), diff);
       ui_string_draw(res, width, &x, y, fg, bg);
-      ui_blank_draw(2 + table->tab_max_width_cols[col++] - width, &x, y, fg,
-                    bg);
+      ui_blank_draw(ui_margin + table->tab_max_width_cols[col++] - width, &x, y,
+                    fg, bg);
     }
     {
       memset(res, 0, LEN0(res));
       u64 diff = difftime(now, pipeline->pip_updated_at_time);
       width = common_duration_second_to_short(res, LEN0(res), diff);
       ui_string_draw(res, width, &x, y, fg, bg);
-      ui_blank_draw(2 + table->tab_max_width_cols[col++] - width, &x, y, fg,
-                    bg);
+      ui_blank_draw(ui_margin + table->tab_max_width_cols[col++] - width, &x, y,
+                    fg, bg);
     }
     {
       width = sdslen(pipeline->pip_duration);
       ui_string_draw(pipeline->pip_duration, width, &x, y, fg, bg);
-      ui_blank_draw(2 + table->tab_max_width_cols[col++] - width, &x, y, fg,
-                    bg);
+      ui_blank_draw(ui_margin + table->tab_max_width_cols[col++] - width, &x, y,
+                    fg, bg);
     }
     {
       char status[40] = "";
@@ -210,7 +212,7 @@ static void table_draw(table_t* table) {
         fg = TB_MAGENTA;
       }
       ui_string_draw(status, table->tab_max_width_cols[col++], &x, y, fg, bg);
-      ui_blank_draw(2, &x, y, fg, bg);
+      ui_blank_draw(ui_margin, &x, y, fg, bg);
     }
   }
 }
