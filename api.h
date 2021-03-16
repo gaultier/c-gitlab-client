@@ -30,6 +30,13 @@ static entity_t *entities = NULL;
 
 static void api_init() { cm = curl_multi_init(); }
 
+static size_t curl_write_cb(char *data, size_t n, size_t l, void *userp) {
+  entity_t *entity = userp;
+  entity->ent_fetch_data = sdscatlen(entity->ent_fetch_data, data, n * l);
+
+  return n * l;
+}
+
 static int json_eq(const char *json, const jsmntok_t *tok, const char *s,
                    u64 s_len) {
   if (tok->type == JSMN_STRING && ((int)s_len == tok->end - tok->start) &&
@@ -64,7 +71,32 @@ static void project_parse_json(entity_t *entity, lstack_t *channel) {
   lstack_push(channel, entity);
 }
 
-static void pipelines_parse_json(entity_t *dummy_entity, lstack_t *channel) {
+static void pipeline_queue_fetch(CURLM *cm, u64 project_id, u64 pipeline_id,
+                                 args_t *args) {
+  memset(url, 0, sizeof(url));
+
+  if (args->arg_gitlab_token)
+    snprintf(url, LEN0(url),
+             "%s/api/v4/projects/%llu/pipelines/%llu?private_token=%s",
+             args->arg_base_url, project_id, pipeline_id,
+             args->arg_gitlab_token);
+  else
+    snprintf(url, LEN0(url), "%s/api/v4/projects/%llu/pipelines/%llu",
+             args->arg_base_url, project_id, pipeline_id);
+  CURL *eh = curl_easy_init();
+  curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, curl_write_cb);
+  curl_easy_setopt(eh, CURLOPT_URL, url);
+
+  entity_t *entity = entity_new(EK_PIPELINE);
+  pipeline_init(&entity->ent_e.ent_pipeline, project_id);
+  entity->ent_e.ent_pipeline.pip_id = pipeline_id;
+
+  curl_easy_setopt(eh, CURLOPT_WRITEDATA, entity);
+  curl_easy_setopt(eh, CURLOPT_PRIVATE, entity);
+  curl_multi_add_handle(cm, eh);
+}
+
+static void pipelines_parse_json(entity_t *dummy_entity, args_t *args) {
   buf_trunc(json_tokens, 10 * 1024);  // 10 KiB
   buf_clear(json_tokens);
 
@@ -88,7 +120,9 @@ static void pipelines_parse_json(entity_t *dummy_entity, lstack_t *channel) {
     const jsmntok_t *const tok = &json_tokens[i];
     if (tok->type == JSMN_OBJECT) {
       if (e_pipeline) {
-        lstack_push(channel, e_pipeline);
+        pipeline_queue_fetch(cm, e_pipeline->ent_e.ent_pipeline.pip_project_id,
+                             e_pipeline->ent_e.ent_pipeline.pip_id, args);
+        lstack_push(&args->arg_channel, e_pipeline);
       }
       e_pipeline = entity_new(EK_PIPELINE);
       pipeline = &e_pipeline->ent_e.ent_pipeline;
@@ -107,13 +141,6 @@ static void pipelines_parse_json(entity_t *dummy_entity, lstack_t *channel) {
   }
   entity_pop(entities, dummy_entity);
   entity_release(dummy_entity);
-}
-
-static size_t curl_write_cb(char *data, size_t n, size_t l, void *userp) {
-  entity_t *entity = userp;
-  entity->ent_fetch_data = sdscatlen(entity->ent_fetch_data, data, n * l);
-
-  return n * l;
 }
 
 static void project_queue_fetch(CURLM *cm, entity_t *entity, args_t *args) {
@@ -176,7 +203,7 @@ static void api_do_fetch(CURLM *cm) {
           if (entity->ent_kind == EK_PROJECT)
             project_parse_json(entity, &args.arg_channel);
           else if (entity->ent_kind == EK_PIPELINE)
-            pipelines_parse_json(entity, &args.arg_channel);
+            pipelines_parse_json(entity, &args);
         }
         curl_multi_remove_handle(cm, e);
         curl_easy_cleanup(e);

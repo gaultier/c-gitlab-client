@@ -106,17 +106,17 @@ static int ui_iso_date_to_short_time(const sds date, const struct tm* now,
   if (diff.tm_year > 100)
     return 0;
   else if (diff.tm_year > 0)
-    return sprintf(res, "%dy", diff.tm_year);
+    return sprintf(res, "%dy ago", diff.tm_year);
   else if (diff.tm_mon > 0)
-    return sprintf(res, "%dM", diff.tm_mon);
+    return sprintf(res, "%dM ago", diff.tm_mon);
   else if (diff.tm_mday > 0)
-    return sprintf(res, "%dd", diff.tm_mday);
+    return sprintf(res, "%dd ago", diff.tm_mday);
   else if (diff.tm_hour > 0)
-    return sprintf(res, "%dh", diff.tm_hour);
+    return sprintf(res, "%dh ago", diff.tm_hour);
   else if (diff.tm_min > 0)
-    return sprintf(res, "%dm", diff.tm_min);
+    return sprintf(res, "%dm ago", diff.tm_min);
   else if (diff.tm_sec > 0)
-    return sprintf(res, "%ds", diff.tm_sec);
+    return sprintf(res, "%ds ago", diff.tm_sec);
   else
     return sprintf(res, "now");
 }
