@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common.h"
-#include "deps/sds/sds.h"
 
 #define JSON_PARSE_KV_STRING(key, json_tokens, i, s, field) \
   do {                                                      \
