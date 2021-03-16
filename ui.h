@@ -6,7 +6,7 @@
 #include "deps/termbox/src/utf8.c"
 
 typedef struct {
-  int tab_max_width_cols[5];
+  int tab_max_width_cols[6];
   int tab_y, tab_h, tab_selected;
   pipeline_t* tab_pipelines;
   project_t* tab_projects;
@@ -15,7 +15,7 @@ typedef struct {
 table_t table;
 
 static void table_init() {
-  table = (table_t){.tab_max_width_cols = {9, 9, 9, 9, 9},
+  table = (table_t){.tab_max_width_cols = {9, 9, 9, 9, 9, 9},
                     .tab_h = tb_height() - 1};  // -1 for header
 }
 
@@ -62,7 +62,7 @@ static void table_calc_size() {
         MAX(table.tab_max_width_cols[col], (int)sdslen(pipeline->pip_vcs_ref));
     col++;
 
-    col += 2;  // skip created, updated
+    col += 3;  // skip created_at, updated_at, duration
 
     table.tab_max_width_cols[col] =
         MAX(table.tab_max_width_cols[col], (int)sdslen(pipeline->pip_status));
@@ -147,6 +147,12 @@ static void table_header_draw(table_t* table) {
                   TB_DEFAULT, TB_DEFAULT);
   }
   {
+    const char header[] = "DURATION";
+    ui_string_draw(header, LEN0(header), &x, 0, TB_WHITE | TB_BOLD, TB_DEFAULT);
+    ui_blank_draw(2 + table->tab_max_width_cols[col++] - LEN0(header), &x, 0,
+                  TB_DEFAULT, TB_DEFAULT);
+  }
+  {
     const char header[] = "STATUS";
     ui_string_draw(header, LEN0(header), &x, 0, TB_WHITE | TB_BOLD, TB_DEFAULT);
     ui_blank_draw(2 + table->tab_max_width_cols[col++] - LEN0(header), &x, 0,
@@ -174,44 +180,62 @@ static void table_draw(table_t* table) {
       bg = TB_BLUE;
     }
 
-    ui_string_draw(pipeline->pip_project_path_with_namespace,
-                   sdslen(pipeline->pip_project_path_with_namespace), &x, y, fg,
-                   bg);
-    ui_blank_draw(2 + table->tab_max_width_cols[col++] -
-                      sdslen(pipeline->pip_project_path_with_namespace),
-                  &x, y, fg, bg);
-
-    ui_string_draw(pipeline->pip_vcs_ref, sdslen(pipeline->pip_vcs_ref), &x, y,
-                   fg, bg);
-    ui_blank_draw(
-        2 + table->tab_max_width_cols[col++] - sdslen(pipeline->pip_vcs_ref),
-        &x, y, fg, bg);
-
-    char res[10] = "";
-    int width = ui_iso_date_to_short_time(pipeline->pip_created_at, &now, res);
-    ui_string_draw(res, width, &x, y, fg, bg);
-    ui_blank_draw(2 + table->tab_max_width_cols[col++] - width, &x, y, fg, bg);
-
-    memset(res, 0, LEN0(res));
-    width = ui_iso_date_to_short_time(pipeline->pip_updated_at, &now, res);
-    ui_string_draw(res, width, &x, y, fg, bg);
-    ui_blank_draw(2 + table->tab_max_width_cols[col++] - width, &x, y, fg, bg);
-
-    char status[40] = "";
-    memcpy(status, pipeline->pip_status,
-           MIN(LEN0(status), sdslen(pipeline->pip_status)));
-    if (sdslen(pipeline->pip_status) == LEN0("success") &&
-        strcmp(pipeline->pip_status, "success") == 0) {
-      fg = TB_GREEN;
-    } else if (sdslen(pipeline->pip_status) == LEN0("failed") &&
-               strcmp(pipeline->pip_status, "failed") == 0) {
-      fg = TB_RED;
-    } else if (sdslen(pipeline->pip_status) == LEN0("canceled") &&
-               strcmp(pipeline->pip_status, "canceled") == 0) {
-      fg = TB_MAGENTA;
+    {
+      ui_string_draw(pipeline->pip_project_path_with_namespace,
+                     sdslen(pipeline->pip_project_path_with_namespace), &x, y,
+                     fg, bg);
+      ui_blank_draw(2 + table->tab_max_width_cols[col++] -
+                        sdslen(pipeline->pip_project_path_with_namespace),
+                    &x, y, fg, bg);
     }
-    ui_string_draw(status, table->tab_max_width_cols[col++], &x, y, fg, bg);
-    ui_blank_draw(2, &x, y, fg, bg);
+    {
+      ui_string_draw(pipeline->pip_vcs_ref, sdslen(pipeline->pip_vcs_ref), &x,
+                     y, fg, bg);
+      ui_blank_draw(
+          2 + table->tab_max_width_cols[col++] - sdslen(pipeline->pip_vcs_ref),
+          &x, y, fg, bg);
+    }
+    char res[10] = "";
+    int width = 0;
+    {
+      memset(res, 0, LEN0(res));
+      width = ui_iso_date_to_short_time(pipeline->pip_created_at, &now, res);
+      ui_string_draw(res, width, &x, y, fg, bg);
+      ui_blank_draw(2 + table->tab_max_width_cols[col++] - width, &x, y, fg,
+                    bg);
+    }
+    {
+      memset(res, 0, LEN0(res));
+      width = ui_iso_date_to_short_time(pipeline->pip_updated_at, &now, res);
+      ui_string_draw(res, width, &x, y, fg, bg);
+      ui_blank_draw(2 + table->tab_max_width_cols[col++] - width, &x, y, fg,
+                    bg);
+    }
+    {
+      memset(res, 0, LEN0(res));
+      snprintf(res, sizeof(res), "%llds", pipeline->pip_duration_second);
+      width = strlen(res);
+      ui_string_draw(res, width, &x, y, fg, bg);
+      ui_blank_draw(2 + table->tab_max_width_cols[col++] - width, &x, y, fg,
+                    bg);
+    }
+    {
+      char status[40] = "";
+      memcpy(status, pipeline->pip_status,
+             MIN(LEN0(status), sdslen(pipeline->pip_status)));
+      if (sdslen(pipeline->pip_status) == LEN0("success") &&
+          strcmp(pipeline->pip_status, "success") == 0) {
+        fg = TB_GREEN;
+      } else if (sdslen(pipeline->pip_status) == LEN0("failed") &&
+                 strcmp(pipeline->pip_status, "failed") == 0) {
+        fg = TB_RED;
+      } else if (sdslen(pipeline->pip_status) == LEN0("canceled") &&
+                 strcmp(pipeline->pip_status, "canceled") == 0) {
+        fg = TB_MAGENTA;
+      }
+      ui_string_draw(status, table->tab_max_width_cols[col++], &x, y, fg, bg);
+      ui_blank_draw(2, &x, y, fg, bg);
+    }
   }
 }
 
