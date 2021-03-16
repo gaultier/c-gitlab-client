@@ -37,11 +37,11 @@ static void table_resize(table_t* table) {
 static void table_add_or_update_pipeline(table_t* table, pipeline_t* pipeline) {
   for (int i = 0; i < (int)buf_size(table->tab_pipelines); i++) {
     if (table->tab_pipelines[i].pip_id == pipeline->pip_id) {
-      /* pipeline_release(&table->tab_pipelines[i]); */
       if (sdslen(table->tab_pipelines[i].pip_project_path_with_namespace)) {
         pipeline->pip_project_path_with_namespace =
             table->tab_pipelines[i].pip_project_path_with_namespace;
       }
+      pipeline_release(&table->tab_pipelines[i]);
       table->tab_pipelines[i] = *pipeline;
       return;
     }

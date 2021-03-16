@@ -97,14 +97,14 @@ static void pipeline_release(pipeline_t *pipeline) {
   pipeline->pip_updated_at = NULL;
   sdsfree(pipeline->pip_status);
   pipeline->pip_status = NULL;
-  sdsfree(pipeline->pip_project_path_with_namespace);
+  // Don't free it since we do not own it
   pipeline->pip_project_path_with_namespace = NULL;
 }
 
 static void project_release(project_t *project) {
   sdsfree(project->pro_name);
   project->pro_name = NULL;
-  sdsfree(project->pro_path_with_namespace);
+  /* sdsfree(project->pro_path_with_namespace); */
   project->pro_path_with_namespace = NULL;
 }
 
