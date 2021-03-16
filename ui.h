@@ -56,7 +56,7 @@ static void table_add_pipeline(table_t* table, pipeline_t* pipeline) {
       return;
     }
   }
-  buf_push(table->tab_pipelines, pipeline);
+  buf_push(table->tab_pipelines, *pipeline);
 }
 
 static void ui_init() {
@@ -212,11 +212,10 @@ static void ui_run(args_t* args) {
     tb_peek_event(&event, 500);
     while ((entity = lstack_pop(&args->arg_channel))) {
       if (entity->ent_kind == EK_PIPELINE) {
-        buf_push(table.tab_pipelines, entity->ent_e.ent_pipeline);
+        table_add_pipeline(&table, &entity->ent_e.ent_pipeline);
       }
       entity_pop(entities, entity);
       sdsfree(entity->ent_fetch_data);
-      table_add_pipeline(&table, &entity->ent_e.ent_pipeline);
     }
 
     switch (event.type) {
