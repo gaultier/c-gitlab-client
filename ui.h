@@ -51,13 +51,35 @@ static void table_resize(table_t* table) {
   table->tab_y = MAX(0, MAX(table->tab_y, table->tab_h));
 }
 
+static void pipeline_merge(pipeline_t* before, pipeline_t* after) {
+  if (sdslen(before->pip_project_path_with_namespace)) {
+    after->pip_project_path_with_namespace =
+        before->pip_project_path_with_namespace;
+  }
+
+  if (before->pip_started_at_time)
+    after->pip_started_at_time = before->pip_started_at_time;
+
+  if (sdslen(before->pip_started_at))
+    after->pip_started_at = sdsdup(before->pip_started_at);
+
+  if (before->pip_finished_at_time)
+    after->pip_finished_at_time = before->pip_finished_at_time;
+
+  if (sdslen(before->pip_finished_at))
+    after->pip_finished_at = sdsdup(before->pip_finished_at);
+
+  if (sdslen(before->pip_duration))
+    after->pip_duration = sdsdup(before->pip_duration);
+
+  if (before->pip_duration_second)
+    after->pip_duration_second = before->pip_duration_second;
+}
+
 static void table_add_or_update_pipeline(table_t* table, pipeline_t* pipeline) {
   for (int i = 0; i < (int)buf_size(table->tab_pipelines); i++) {
     if (table->tab_pipelines[i].pip_id == pipeline->pip_id) {
-      if (sdslen(table->tab_pipelines[i].pip_project_path_with_namespace)) {
-        pipeline->pip_project_path_with_namespace =
-            table->tab_pipelines[i].pip_project_path_with_namespace;
-      }
+      pipeline_merge(&table->tab_pipelines[i], pipeline);
       pipeline_release(&table->tab_pipelines[i]);
       table->tab_pipelines[i] = *pipeline;
       return;
