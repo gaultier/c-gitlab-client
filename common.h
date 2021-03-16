@@ -67,7 +67,7 @@ typedef enum {
 
 struct entity_t {
   entity_kind_t ent_kind;
-  sds ent_fetch_data;
+  sds ent_fetch_data, ent_api_url;
   union {
     pipeline_t ent_pipeline;
     project_t ent_project;
@@ -147,12 +147,15 @@ static entity_t *entity_new(entity_kind_t kind) {
   entity_t *entity = calloc(1, sizeof(entity_t));
   entity->ent_kind = kind;
   entity->ent_fetch_data = sdsempty();
+  entity->ent_api_url = sdsempty();
   return entity;
 }
 
 static void entity_release(entity_t *entity) {
   sdsfree(entity->ent_fetch_data);
   entity->ent_fetch_data = NULL;
+  sdsfree(entity->ent_api_url);
+  entity->ent_api_url = NULL;
 
   if (entity->ent_kind == EK_PROJECT)
     project_release(&entity->ent_e.ent_project);

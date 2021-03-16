@@ -59,7 +59,10 @@ static void project_parse_json(entity_t *entity, lstack_t *channel) {
   int res = jsmn_parse(&parser, s, sdslen((char *)s), json_tokens,
                        buf_capacity(json_tokens));
   if (res <= 0 || json_tokens[0].type != JSMN_OBJECT) {
-    fprintf(stderr, "%s:%d:Malformed JSON for project\n", __FILE__, __LINE__);
+    fprintf(log,
+            "P100 | %s:%d:Malformed JSON for project: url=%s "
+            "json=%s\n",
+            __FILE__, __LINE__, entity->ent_api_url, entity->ent_fetch_data);
     return;
   }
 
@@ -86,11 +89,13 @@ static void pipeline_queue_fetch(CURLM *cm, u64 project_id, u64 pipeline_id,
   else
     snprintf(url, LEN0(url), "%s/api/v4/projects/%llu/pipelines/%llu",
              args->arg_base_url, project_id, pipeline_id);
-  CURL *eh = curl_easy_init();
-  curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, curl_write_cb);
-  curl_easy_setopt(eh, CURLOPT_URL, url);
 
   entity_t *entity = entity_new(EK_FETCH_PIPELINE);
+  entity->ent_api_url = sdsnew(url);
+  CURL *eh = curl_easy_init();
+  curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, curl_write_cb);
+  curl_easy_setopt(eh, CURLOPT_URL, entity->ent_api_url);
+
   pipeline_init(&entity->ent_e.ent_pipeline, project_id);
   entity->ent_e.ent_pipeline.pip_id = pipeline_id;
 
@@ -111,10 +116,10 @@ static void pipeline_parse_json(entity_t *entity, lstack_t *channel) {
   int res = jsmn_parse(&parser, s, sdslen((char *)s), json_tokens,
                        buf_capacity(json_tokens));
   if (res <= 0 || json_tokens[0].type != JSMN_OBJECT) {
-    fprintf(stderr,
-            "%s:%d:Malformed JSON for pipeline: "
-            "json=`%s`\n",
-            __FILE__, __LINE__, entity->ent_fetch_data);
+    fprintf(log,
+            "P101 | %s:%d:Malformed JSON for pipeline: url=%s "
+            "json=%s\n",
+            __FILE__, __LINE__, entity->ent_api_url, entity->ent_fetch_data);
     return;
   }
 
@@ -180,10 +185,11 @@ static void pipelines_parse_json(entity_t *dummy_entity, args_t *args) {
   int res = jsmn_parse(&parser, s, sdslen((char *)s), json_tokens,
                        buf_capacity(json_tokens));
   if (res <= 0 || json_tokens[0].type != JSMN_ARRAY) {
-    fprintf(stderr,
-            "%s:%d:Malformed JSON for project pipelines: "
-            "json=`%s`\n",
-            __FILE__, __LINE__, dummy_entity->ent_fetch_data);
+    fprintf(log,
+            "P102 | %s:%d:Malformed JSON for project pipelines: url=%s "
+            "json=%s\n",
+            __FILE__, __LINE__, dummy_entity->ent_api_url,
+            dummy_entity->ent_fetch_data);
     return;
   }
 
@@ -251,10 +257,11 @@ static void project_queue_fetch(CURLM *cm, entity_t *entity, args_t *args) {
     snprintf(url, LEN0(url), "%s/api/v4/projects/%llu?simple=true",
              args->arg_base_url, entity->ent_e.ent_project.pro_id);
 
+  entity->ent_api_url = sdsnew(url);
   CURL *eh = curl_easy_init();
   curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, curl_write_cb);
   curl_easy_setopt(eh, CURLOPT_WRITEDATA, entity);
-  curl_easy_setopt(eh, CURLOPT_URL, url);
+  curl_easy_setopt(eh, CURLOPT_URL, entity->ent_api_url);
   curl_easy_setopt(eh, CURLOPT_PRIVATE, entity);
   curl_multi_add_handle(cm, eh);
 }
@@ -273,9 +280,11 @@ static void pipelines_queue_fetch(CURLM *cm, entity_t *entity, args_t *args) {
     snprintf(url, LEN0(url),
              "%s/api/v4/projects/%llu/pipelines?order_by=updated_at",
              args->arg_base_url, entity->ent_e.ent_pipeline.pip_project_id);
+
+  entity->ent_api_url = sdsnew(url);
   CURL *eh = curl_easy_init();
   curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, curl_write_cb);
-  curl_easy_setopt(eh, CURLOPT_URL, url);
+  curl_easy_setopt(eh, CURLOPT_URL, entity->ent_api_url);
   curl_easy_setopt(eh, CURLOPT_WRITEDATA, entity);
   curl_easy_setopt(eh, CURLOPT_PRIVATE, entity);
   curl_multi_add_handle(cm, eh);
@@ -295,6 +304,11 @@ static void api_do_fetch(CURLM *cm) {
       curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, &entity);
 
       if (msg->msg == CURLMSG_DONE) {
+        i64 http_code = 0;
+        curl_easy_getinfo(msg->easy_handle, CURLINFO_RESPONSE_CODE, &http_code);
+        fprintf(log, "D014 | http_code=%lld url=%s data=%s\n", http_code,
+                entity->ent_api_url, entity->ent_fetch_data);
+
         // fprintf(stderr, "R: %d - %s\n", msg->data.result,
         //        curl_easy_strerror(msg->data.result));
 
