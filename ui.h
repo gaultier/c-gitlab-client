@@ -78,7 +78,7 @@ static void table_add_or_update_pipeline(pipeline_t* pipeline) {
   for (int i = 0; i < (int)buf_size(table.tab_pipelines); i++) {
     if (table.tab_pipelines[i].pip_id == pipeline->pip_id) {
       pipeline_merge(&table.tab_pipelines[i], pipeline);
-      pipeline_release(&table.tab_pipelines[i]);
+      /* FIXME pipeline_release(&table.tab_pipelines[i]); */
       table.tab_pipelines[i] = *pipeline;
       fprintf(log,
               "C001 | pip_id=%lld pip_project_id=%lld pip_duration_second=%lld "
@@ -253,6 +253,10 @@ static void table_draw() {
                     fg, bg);
     }
     {
+      fprintf(log,
+              "C005 | pip_id=%llu pip_duration=%s pip_duration_second=%lld\n",
+              pipeline->pip_id, pipeline->pip_duration,
+              pipeline->pip_duration_second);
       ui_string_draw(pipeline->pip_duration, sdslen(pipeline->pip_duration), &x,
                      y, fg, bg);
       ui_blank_draw(ui_margin + table.tab_max_width_cols[col++] -
