@@ -225,25 +225,28 @@ static void table_update_pipelines_on_project_received(project_t* project) {
   }
 }
 
+static void table_pull_entities(args_t* args) {
+  entity_t* entity = NULL;
+  while ((entity = lstack_pop(&args->arg_channel))) {
+    if (entity->ent_kind == EK_PROJECT) {
+      buf_push(table.tab_projects, entity->ent_e.ent_project);
+      table_update_pipelines_on_project_received(&buf_last(table.tab_projects));
+    } else if (entity->ent_kind == EK_PIPELINE) {
+      table_add_or_update_pipeline(&table, &entity->ent_e.ent_pipeline);
+    }
+    entity_pop(entities, entity);
+    sdsfree(entity->ent_fetch_data);
+  }
+  table_calc_size();
+}
+
 static void ui_run(args_t* args) {
   table_init();
 
   struct tb_event event;
-  entity_t* entity = NULL;
   while (1) {
     tb_peek_event(&event, 500);
-    while ((entity = lstack_pop(&args->arg_channel))) {
-      if (entity->ent_kind == EK_PROJECT) {
-        buf_push(table.tab_projects, entity->ent_e.ent_project);
-        table_update_pipelines_on_project_received(
-            &buf_last(table.tab_projects));
-      } else if (entity->ent_kind == EK_PIPELINE) {
-        table_add_or_update_pipeline(&table, &entity->ent_e.ent_pipeline);
-      }
-      entity_pop(entities, entity);
-      sdsfree(entity->ent_fetch_data);
-    }
-    table_calc_size();
+    table_pull_entities(args);
 
     switch (event.type) {
       case TB_EVENT_RESIZE:
