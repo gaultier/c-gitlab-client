@@ -2,12 +2,22 @@
 
 #include "common.h"
 
-#define JSON_PARSE_STRING_KV(key, json_tokens, i, s, field) \
+#define JSON_PARSE_KV_STRING(key, json_tokens, i, s, field) \
   do {                                                      \
     if (json_eq(s, tok, key, LEN0(key)) == 0) {             \
       const jsmntok_t *const t = &json_tokens[++i];         \
       const char *const value = s + t->start;               \
       field = sdscatlen(field, value, t->end - t->start);   \
+    }                                                       \
+  } while (0)
+
+#define JSON_PARSE_KV_NUMBER(key, json_tokens, i, s, field) \
+  do {                                                      \
+    if (json_eq(s, tok, key, LEN0(key)) == 0) {             \
+      const jsmntok_t *const t = &json_tokens[++i];         \
+      if (t->type != JSMN_PRIMITIVE) break;                 \
+      const char *const value = s + t->start;               \
+      field = strtoll(value, NULL, 10);                     \
     }                                                       \
   } while (0)
 
@@ -47,8 +57,8 @@ static void project_parse_json(entity_t *entity, lstack_t *channel) {
   for (i64 i = 1; i < res; i++) {
     jsmntok_t *const tok = &json_tokens[i];
 
-    JSON_PARSE_STRING_KV("name", json_tokens, i, s, project->pro_name);
-    JSON_PARSE_STRING_KV("path_with_namespace", json_tokens, i, s,
+    JSON_PARSE_KV_STRING("name", json_tokens, i, s, project->pro_name);
+    JSON_PARSE_KV_STRING("path_with_namespace", json_tokens, i, s,
                          project->pro_path_with_namespace);
   }
   lstack_push(channel, entity);
@@ -86,24 +96,14 @@ static void pipelines_parse_json(entity_t *dummy_entity, lstack_t *channel) {
       continue;
     }
 
-    if (json_eq(s, tok, "id", LEN0("id")) == 0) {
-      const jsmntok_t *const t = &json_tokens[++i];
-      const char *const value = s + t->start;
-      if (t->type != JSMN_PRIMITIVE) {
-        fprintf(stderr, "%s:%d:Malformed JSON for project: res=%d json=`%s`\n",
-                __FILE__, __LINE__, res, s);
-        return;
-      }
-
-      pipeline->pip_id = strtoll(value, NULL, 10);
-    }
-    JSON_PARSE_STRING_KV("ref", json_tokens, i, s, pipeline->pip_vcs_ref);
-    JSON_PARSE_STRING_KV("created_at", json_tokens, i, s,
+    JSON_PARSE_KV_NUMBER("id", json_tokens, i, s, pipeline->pip_id);
+    JSON_PARSE_KV_STRING("ref", json_tokens, i, s, pipeline->pip_vcs_ref);
+    JSON_PARSE_KV_STRING("created_at", json_tokens, i, s,
                          pipeline->pip_created_at);
-    JSON_PARSE_STRING_KV("updated_at", json_tokens, i, s,
+    JSON_PARSE_KV_STRING("updated_at", json_tokens, i, s,
                          pipeline->pip_updated_at);
-    JSON_PARSE_STRING_KV("status", json_tokens, i, s, pipeline->pip_status);
-    JSON_PARSE_STRING_KV("web_url", json_tokens, i, s, pipeline->pip_url);
+    JSON_PARSE_KV_STRING("status", json_tokens, i, s, pipeline->pip_status);
+    JSON_PARSE_KV_STRING("web_url", json_tokens, i, s, pipeline->pip_url);
   }
   entity_pop(entities, dummy_entity);
   entity_release(dummy_entity);
