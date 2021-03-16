@@ -236,7 +236,8 @@ static void table_pull_entities(args_t* args) {
       buf_push(table.tab_projects, entity->ent_e.ent_project);
     } else if (entity->ent_kind == EK_PIPELINE) {
       table_add_or_update_pipeline(&table, &entity->ent_e.ent_pipeline);
-    }
+    } else
+      assert(0 && "Unreachable");
     entity_pop(entities, entity);
     sdsfree(entity->ent_fetch_data);
   }

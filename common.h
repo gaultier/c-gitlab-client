@@ -40,7 +40,13 @@ typedef struct {
   sds pro_name, pro_path_with_namespace;
 } project_t;
 
-typedef enum { EK_PROJECT, EK_PIPELINE } entity_kind_t;
+typedef enum {
+  EK_FETCH_PROJECT,
+  EK_FETCH_PIPELINES,
+  EK_FETCH_PIPELINE,
+  EK_PROJECT,
+  EK_PIPELINE
+} entity_kind_t;
 
 struct entity_t {
   entity_kind_t ent_kind;
