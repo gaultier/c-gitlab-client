@@ -1,8 +1,6 @@
 #pragma once
 
 #include "common.h"
-#include "deps/jsmn/jsmn.h"
-#include "deps/lstack/lstack.h"
 
 #define JSON_PARSE_KV_STRING(key, json_tokens, i, s, field) \
   do {                                                      \
@@ -214,11 +212,13 @@ static void pipelines_queue_fetch(CURLM *cm, entity_t *entity, args_t *args) {
 
   if (args->arg_gitlab_token)
     snprintf(url, LEN0(url),
-             "%s/api/v4/projects/%llu/pipelines?private_token=%s",
+             "%s/api/v4/projects/%llu/"
+             "pipelines?private_token=%s&order_by=updated_at",
              args->arg_base_url, entity->ent_e.ent_pipeline.pip_project_id,
              args->arg_gitlab_token);
   else
-    snprintf(url, LEN0(url), "%s/api/v4/projects/%llu/pipelines",
+    snprintf(url, LEN0(url),
+             "%s/api/v4/projects/%llu/pipelines?order_by=updated_at",
              args->arg_base_url, entity->ent_e.ent_pipeline.pip_project_id);
   CURL *eh = curl_easy_init();
   curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, curl_write_cb);
