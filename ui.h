@@ -124,17 +124,6 @@ static int ui_iso_date_to_short_time(const sds date, const struct tm* now,
     return sprintf(res, "now");
 }
 
-static int ui_duration_second_to_short(u64 duration, char res[10]) {
-  if (duration < 60)
-    return sprintf(res, "%llus", duration);
-  else if (duration < 60 * 60)
-    return sprintf(res, "%llum", duration / 60);
-  else if (duration < 60 * 60 * 24)
-    return sprintf(res, "%lluh", duration / 60 / 60);
-  else
-    return sprintf(res, "> 1d");
-}
-
 static void table_header_draw(table_t* table) {
   int col = 0, x = 0;
   {
@@ -231,9 +220,8 @@ static void table_draw(table_t* table) {
                     bg);
     }
     {
-      memset(res, 0, LEN0(res));
-      width = ui_duration_second_to_short(pipeline->pip_duration_second, res);
-      ui_string_draw(res, width, &x, y, fg, bg);
+      width = sdslen(pipeline->pip_duration);
+      ui_string_draw(pipeline->pip_duration, width, &x, y, fg, bg);
       ui_blank_draw(2 + table->tab_max_width_cols[col++] - width, &x, y, fg,
                     bg);
     }

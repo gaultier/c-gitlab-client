@@ -29,6 +29,17 @@ static CURLM *cm = NULL;
 
 static void api_init() { cm = curl_multi_init(); }
 
+static sds api_duration_second_to_short(sds s, u64 duration) {
+  if (duration < 60)
+    return sdscatprintf(s, "%llus", duration);
+  else if (duration < 60 * 60)
+    return sdscatprintf(s, "%llum", duration / 60);
+  else if (duration < 60 * 60 * 24)
+    return sdscatprintf(s, "%lluh", duration / 60 / 60);
+  else
+    return sdscat(s, "> 1d");
+}
+
 static size_t curl_write_cb(char *data, size_t n, size_t l, void *userp) {
   entity_t *entity = userp;
   entity->ent_fetch_data = sdscatlen(entity->ent_fetch_data, data, n * l);
@@ -133,7 +144,21 @@ static void pipeline_parse_json(entity_t *entity, lstack_t *channel) {
     JSON_PARSE_KV_STRING("status", json_tokens, i, s, pipeline->pip_status);
     JSON_PARSE_KV_STRING("web_url", json_tokens, i, s, pipeline->pip_url);
   }
+  // Post-processing
   entity->ent_kind = EK_PIPELINE;
+
+  struct tm time = {0};
+  if (strptime(pipeline->pip_created_at, "%FT%T", &time))
+    pipeline->pip_created_at_time = mktime(&time);
+  if (strptime(pipeline->pip_updated_at, "%FT%T", &time))
+    pipeline->pip_updated_at_time = mktime(&time);
+  if (strptime(pipeline->pip_started_at, "%FT%T", &time))
+    pipeline->pip_started_at_time = mktime(&time);
+  if (strptime(pipeline->pip_finished_at, "%FT%T", &time))
+    pipeline->pip_finished_at_time = mktime(&time);
+  pipeline->pip_duration = api_duration_second_to_short(
+      pipeline->pip_duration, pipeline->pip_duration_second);
+
   lstack_push(channel, entity);
 }
 
@@ -164,6 +189,13 @@ static void pipelines_parse_json(entity_t *dummy_entity, args_t *args) {
       if (e_pipeline) {
         pipeline_queue_fetch(cm, e_pipeline->ent_e.ent_pipeline.pip_project_id,
                              e_pipeline->ent_e.ent_pipeline.pip_id, args);
+        // Post-processing
+        struct tm time = {0};
+        strptime(pipeline->pip_created_at, "%FT%T", &time);
+        pipeline->pip_created_at_time = mktime(&time);
+        strptime(pipeline->pip_updated_at, "%FT%T", &time);
+        pipeline->pip_updated_at_time = mktime(&time);
+
         lstack_push(&args->arg_channel, e_pipeline);
       }
       e_pipeline = entity_new(EK_PIPELINE);
