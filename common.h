@@ -47,7 +47,7 @@ typedef struct {
   i64 pip_id, pip_project_id, pip_duration_second;
   sds pip_vcs_ref, pip_url, pip_created_at, pip_updated_at, pip_started_at,
       pip_finished_at, pip_status, pip_project_path_with_namespace,
-      pip_duration;
+      pip_duration, pip_id_s;
   time_t pip_created_at_time, pip_updated_at_time, pip_started_at_time,
       pip_finished_at_time;
 } pipeline_t;
@@ -109,6 +109,7 @@ static void pipeline_init(pipeline_t *pipeline, i64 project_id) {
   pipeline->pip_status = sdsempty();
   pipeline->pip_project_path_with_namespace = sdsempty();
   pipeline->pip_duration = sdsempty();
+  pipeline->pip_id_s = sdsempty();
 }
 
 static void pipeline_release(pipeline_t *pipeline) {
@@ -128,6 +129,8 @@ static void pipeline_release(pipeline_t *pipeline) {
   pipeline->pip_status = NULL;
   sdsfree(pipeline->pip_duration);
   pipeline->pip_duration = NULL;
+  sdsfree(pipeline->pip_id_s);
+  pipeline->pip_id_s = NULL;
 
   // Don't free it since we do not own it
   pipeline->pip_project_path_with_namespace = NULL;

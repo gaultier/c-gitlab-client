@@ -8,7 +8,7 @@
 static const int ui_margin = 1;
 
 typedef struct {
-  int tab_max_width_cols[6];
+  int tab_max_width_cols[7];
   int tab_y, tab_h, tab_selected;
   pipeline_t* tab_pipelines;
   project_t* tab_projects;
@@ -17,7 +17,7 @@ typedef struct {
 table_t table;
 
 static void table_init() {
-  table = (table_t){.tab_max_width_cols = {9, 9, 9, 9, 9, 9},
+  table = (table_t){.tab_max_width_cols = {9, 9, 9, 9, 9, 9, 9},
                     .tab_h = tb_height() - 1};  // -1 for header
 }
 
@@ -72,6 +72,10 @@ static void table_calc_size() {
 
     int col = 0;
     table.tab_max_width_cols[col] =
+        MAX(table.tab_max_width_cols[col], (int)sdslen(pipeline->pip_id_s));
+    col++;
+
+    table.tab_max_width_cols[col] =
         MAX(table.tab_max_width_cols[col],
             (int)sdslen(pipeline->pip_project_path_with_namespace));
     col++;
@@ -110,6 +114,12 @@ static void ui_blank_draw(int count, int* x, int y, u16 fg, u16 bg) {
 
 static void table_header_draw(table_t* table) {
   int col = 0, x = 0;
+  {
+    const char header[] = "ID";
+    ui_string_draw(header, LEN0(header), &x, 0, TB_WHITE | TB_BOLD, TB_DEFAULT);
+    ui_blank_draw(ui_margin + table->tab_max_width_cols[col++] - LEN0(header),
+                  &x, 0, TB_DEFAULT, TB_DEFAULT);
+  }
   {
     const char header[] = "PROJECT";
     ui_string_draw(header, LEN0(header), &x, 0, TB_WHITE | TB_BOLD, TB_DEFAULT);
@@ -171,6 +181,13 @@ static void table_draw(table_t* table) {
       bg = TB_BLUE;
     }
 
+    {
+      ui_string_draw(pipeline->pip_id_s, sdslen(pipeline->pip_id_s), &x, y, fg,
+                     bg);
+      ui_blank_draw(ui_margin + table->tab_max_width_cols[col++] -
+                        sdslen(pipeline->pip_id_s),
+                    &x, y, fg, bg);
+    }
     {
       ui_string_draw(pipeline->pip_project_path_with_namespace,
                      sdslen(pipeline->pip_project_path_with_namespace), &x, y,

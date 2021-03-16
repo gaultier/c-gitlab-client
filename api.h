@@ -150,6 +150,7 @@ static void pipeline_parse_json(entity_t *entity, lstack_t *channel) {
                                             sdsalloc(pipeline->pip_duration),
                                             pipeline->pip_duration_second);
   sdssetlen(pipeline->pip_duration, len);
+  pipeline->pip_id_s = sdsfromlonglong(pipeline->pip_id);
 
   lstack_push(channel, entity);
 }
@@ -187,6 +188,7 @@ static void pipelines_parse_json(entity_t *dummy_entity, args_t *args) {
         pipeline->pip_created_at_time = mktime(&time);
         strptime(pipeline->pip_updated_at, "%FT%T", &time);
         pipeline->pip_updated_at_time = mktime(&time);
+        pipeline->pip_id_s = sdsfromlonglong(pipeline->pip_id);
 
         lstack_push(&args->arg_channel, e_pipeline);
       }
