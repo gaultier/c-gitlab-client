@@ -209,6 +209,16 @@ static void table_draw(table_t* table) {
     char status[40] = "";
     memcpy(status, pipeline->pip_status,
            MIN(LEN0(status), sdslen(pipeline->pip_status)));
+    if (sdslen(pipeline->pip_status) == LEN0("success") &&
+        strcmp(pipeline->pip_status, "success") == 0) {
+      fg = TB_GREEN;
+    } else if (sdslen(pipeline->pip_status) == LEN0("failed") &&
+               strcmp(pipeline->pip_status, "failed") == 0) {
+      fg = TB_RED;
+    } else if (sdslen(pipeline->pip_status) == LEN0("canceled") &&
+               strcmp(pipeline->pip_status, "canceled") == 0) {
+      fg = TB_MAGENTA;
+    }
     ui_string_draw(status, table->tab_max_width_cols[col++], &x, y, fg, bg);
     ui_blank_draw(2, &x, y, fg, bg);
   }
