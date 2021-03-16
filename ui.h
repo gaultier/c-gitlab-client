@@ -10,6 +10,7 @@ typedef struct {
   int tab_max_width_cols[5];
   int tab_y, tab_h, tab_selected;
   pipeline_t* tab_pipelines;
+  project_t* tab_projects;
 } table_t;
 
 table_t table;
@@ -34,21 +35,6 @@ static void table_resize(table_t* table) {
 }
 
 static void table_add_pipeline(table_t* table, pipeline_t* pipeline) {
-  int col = 0;
-  table->tab_max_width_cols[col] =
-      MAX(table->tab_max_width_cols[col],
-          (int)sdslen(pipeline->pip_project_path_with_namespace));
-  col++;
-
-  table->tab_max_width_cols[col] =
-      MAX(table->tab_max_width_cols[col], (int)sdslen(pipeline->pip_vcs_ref));
-  col++;
-
-  col += 2;  // skip created, updated
-
-  table->tab_max_width_cols[col] =
-      MAX(table->tab_max_width_cols[col], (int)sdslen(pipeline->pip_status));
-
   for (int i = 0; i < (int)buf_size(table->tab_pipelines); i++) {
     if (table->tab_pipelines[i].pip_id == pipeline->pip_id) {
       /* pipeline_release(&table->tab_pipelines[i]); */
@@ -57,6 +43,27 @@ static void table_add_pipeline(table_t* table, pipeline_t* pipeline) {
     }
   }
   buf_push(table->tab_pipelines, *pipeline);
+}
+
+static void table_calc_size() {
+  for (u64 i = 0; i < buf_size(table.tab_pipelines); i++) {
+    pipeline_t* pipeline = &table.tab_pipelines[i];
+
+    int col = 0;
+    table.tab_max_width_cols[col] =
+        MAX(table.tab_max_width_cols[col],
+            (int)sdslen(pipeline->pip_project_path_with_namespace));
+    col++;
+
+    table.tab_max_width_cols[col] =
+        MAX(table.tab_max_width_cols[col], (int)sdslen(pipeline->pip_vcs_ref));
+    col++;
+
+    col += 2;  // skip created, updated
+
+    table.tab_max_width_cols[col] =
+        MAX(table.tab_max_width_cols[col], (int)sdslen(pipeline->pip_status));
+  }
 }
 
 static void ui_init() {
@@ -203,6 +210,17 @@ static void table_draw(table_t* table) {
   }
 }
 
+static void table_update_pipelines_on_project_received(project_t* project) {
+  for (u64 i = 0; i < buf_size(table.tab_pipelines); i++) {
+    pipeline_t* pipeline = &table.tab_pipelines[i];
+    if (pipeline->pip_project_id == project->pro_id) {
+      sdsfree(pipeline->pip_project_path_with_namespace);
+      pipeline->pip_project_path_with_namespace =
+          sdsdup(project->pro_path_with_namespace);
+    }
+  }
+}
+
 static void ui_run(args_t* args) {
   table_init();
 
@@ -211,12 +229,17 @@ static void ui_run(args_t* args) {
   while (1) {
     tb_peek_event(&event, 500);
     while ((entity = lstack_pop(&args->arg_channel))) {
-      if (entity->ent_kind == EK_PIPELINE) {
+      if (entity->ent_kind == EK_PROJECT) {
+        buf_push(table.tab_projects, entity->ent_e.ent_project);
+        table_update_pipelines_on_project_received(
+            &buf_last(table.tab_projects));
+      } else if (entity->ent_kind == EK_PIPELINE) {
         table_add_pipeline(&table, &entity->ent_e.ent_pipeline);
       }
       entity_pop(entities, entity);
       sdsfree(entity->ent_fetch_data);
     }
+    table_calc_size();
 
     switch (event.type) {
       case TB_EVENT_RESIZE:
