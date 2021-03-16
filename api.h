@@ -63,6 +63,7 @@ static void project_parse_json(entity_t *entity, lstack_t *channel) {
             "P100 | %s:%d:Malformed JSON for project: url=%s "
             "json=%s\n",
             __FILE__, __LINE__, entity->ent_api_url, entity->ent_fetch_data);
+    entity_release(entity);
     return;
   }
 
@@ -120,6 +121,7 @@ static void pipeline_parse_json(entity_t *entity, lstack_t *channel) {
             "P101 | %s:%d:Malformed JSON for pipeline: url=%s "
             "json=%s\n",
             __FILE__, __LINE__, entity->ent_api_url, entity->ent_fetch_data);
+    entity_release(entity);
     return;
   }
 
@@ -160,9 +162,14 @@ static void pipeline_parse_json(entity_t *entity, lstack_t *channel) {
     pipeline->pip_finished_at_time = timegm(&time);
 
   pipeline->pip_duration = sdsgrowzero(pipeline->pip_duration, 20);
+  sdssetlen(pipeline->pip_duration, 0);
+  CHECK((u64)sdslen(pipeline->pip_duration), ==, 0LLU, "%llu");
+  CHECK((u64)sdsalloc(pipeline->pip_duration), >=, 20LLU, "%llu");
+
   int len = common_duration_second_to_short(pipeline->pip_duration,
                                             sdsalloc(pipeline->pip_duration),
                                             pipeline->pip_duration_second);
+  CHECK(len, >, 0, "%d");
   sdssetlen(pipeline->pip_duration, len);
 
   pipeline->pip_id_s = sdsfromlonglong(pipeline->pip_id);
@@ -190,6 +197,7 @@ static void pipelines_parse_json(entity_t *dummy_entity, args_t *args) {
             "json=%s\n",
             __FILE__, __LINE__, dummy_entity->ent_api_url,
             dummy_entity->ent_fetch_data);
+    entity_release(dummy_entity);
     return;
   }
 
@@ -306,25 +314,18 @@ static void api_do_fetch(CURLM *cm) {
       if (msg->msg == CURLMSG_DONE) {
         i64 http_code = 0;
         curl_easy_getinfo(msg->easy_handle, CURLINFO_RESPONSE_CODE, &http_code);
-        fprintf(log, "D014 | http_code=%lld url=%s data=%s\n", http_code,
-                entity->ent_api_url, entity->ent_fetch_data);
+        fprintf(log, "D014 | http_code=%lld url=%s data=%s ent_kind=%d\n",
+                http_code, entity->ent_api_url, entity->ent_fetch_data,
+                entity->ent_kind);
 
-        // fprintf(stderr, "R: %d - %s\n", msg->data.result,
-        //        curl_easy_strerror(msg->data.result));
-
-        if (msg->data.result == CURLE_OK) {
-          if (entity->ent_kind == EK_FETCH_PROJECT)
-            project_parse_json(entity, &args.arg_channel);
-          else if (entity->ent_kind == EK_FETCH_PIPELINES)
-            pipelines_parse_json(entity, &args);
-          else if (entity->ent_kind == EK_FETCH_PIPELINE)
-            pipeline_parse_json(entity, &args.arg_channel);
-          else
-            assert(0 && "Unreachable");
-        } else {
-          fprintf(log, "P003 | error\n");
-          entity_release(entity);
-        }
+        if (entity->ent_kind == EK_FETCH_PROJECT)
+          project_parse_json(entity, &args.arg_channel);
+        else if (entity->ent_kind == EK_FETCH_PIPELINES)
+          pipelines_parse_json(entity, &args);
+        else if (entity->ent_kind == EK_FETCH_PIPELINE)
+          pipeline_parse_json(entity, &args.arg_channel);
+        else
+          assert(0 && "Unreachable");
 
         curl_multi_remove_handle(cm, e);
         curl_easy_cleanup(e);

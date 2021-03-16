@@ -253,10 +253,11 @@ static void table_draw() {
                     fg, bg);
     }
     {
-      width = sdslen(pipeline->pip_duration);
-      ui_string_draw(pipeline->pip_duration, width, &x, y, fg, bg);
-      ui_blank_draw(ui_margin + table.tab_max_width_cols[col++] - width, &x, y,
-                    fg, bg);
+      ui_string_draw(pipeline->pip_duration, sdslen(pipeline->pip_duration), &x,
+                     y, fg, bg);
+      ui_blank_draw(ui_margin + table.tab_max_width_cols[col++] -
+                        sdslen(pipeline->pip_duration),
+                    &x, y, fg, bg);
     }
     {
       char status[40] = "";
