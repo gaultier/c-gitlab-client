@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common.h"
-#include "deps/lstack/lstack.h"
 #include "deps/termbox/src/termbox.c"
 #include "deps/termbox/src/termbox.h"
 #include "deps/termbox/src/utf8.c"
