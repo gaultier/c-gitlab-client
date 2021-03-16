@@ -150,8 +150,8 @@ static void project_queue_fetch(CURLM *cm, entity_t *entity, args_t *args) {
              args->arg_base_url, entity->ent_e.ent_project.pro_id,
              args->arg_gitlab_token);
   else
-    snprintf(url, LEN0(url), "%s/api/v4/projects/%llu", args->arg_base_url,
-             entity->ent_e.ent_project.pro_id);
+    snprintf(url, LEN0(url), "%s/api/v4/projects/%llu?simple=true",
+             args->arg_base_url, entity->ent_e.ent_project.pro_id);
 
   CURL *eh = curl_easy_init();
   curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, curl_write_cb);
