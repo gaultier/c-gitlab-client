@@ -1,6 +1,8 @@
 #pragma once
 
 #include "common.h"
+#include "deps/jsmn/jsmn.h"
+#include "deps/lstack/lstack.h"
 
 #define JSON_PARSE_KV_STRING(key, json_tokens, i, s, field) \
   do {                                                      \
@@ -96,6 +98,46 @@ static void pipeline_queue_fetch(CURLM *cm, u64 project_id, u64 pipeline_id,
   curl_easy_setopt(eh, CURLOPT_WRITEDATA, entity);
   curl_easy_setopt(eh, CURLOPT_PRIVATE, entity);
   curl_multi_add_handle(cm, eh);
+}
+
+static void pipeline_parse_json(entity_t *entity, lstack_t *channel) {
+  assert(entity->ent_kind == EK_FETCH_PIPELINE);
+  buf_trunc(json_tokens, 10 * 1024);  // 10 KiB
+  buf_clear(json_tokens);
+
+  jsmn_parser parser;
+  jsmn_init(&parser);
+
+  const char *const s = entity->ent_fetch_data;
+  int res = jsmn_parse(&parser, s, sdslen((char *)s), json_tokens,
+                       buf_capacity(json_tokens));
+  if (res <= 0 || json_tokens[0].type != JSMN_OBJECT) {
+    fprintf(stderr,
+            "%s:%d:Malformed JSON for pipeline: "
+            "json=`%s`\n",
+            __FILE__, __LINE__, entity->ent_fetch_data);
+    return;
+  }
+
+  pipeline_t *pipeline = &entity->ent_e.ent_pipeline;
+  for (i64 i = 1; i < res; i++) {
+    JSON_PARSE_KV_NUMBER("id", json_tokens, i, s, pipeline->pip_id);
+    JSON_PARSE_KV_STRING("ref", json_tokens, i, s, pipeline->pip_vcs_ref);
+    JSON_PARSE_KV_STRING("created_at", json_tokens, i, s,
+                         pipeline->pip_created_at);
+    JSON_PARSE_KV_STRING("updated_at", json_tokens, i, s,
+                         pipeline->pip_updated_at);
+    JSON_PARSE_KV_STRING("started_at", json_tokens, i, s,
+                         pipeline->pip_started_at);
+    JSON_PARSE_KV_STRING("finished_at", json_tokens, i, s,
+                         pipeline->pip_finished_at);
+    JSON_PARSE_KV_NUMBER("duration", json_tokens, i, s,
+                         pipeline->pip_duration_second);
+    JSON_PARSE_KV_STRING("status", json_tokens, i, s, pipeline->pip_status);
+    JSON_PARSE_KV_STRING("web_url", json_tokens, i, s, pipeline->pip_url);
+  }
+  entity->ent_kind = EK_PIPELINE;
+  lstack_push(channel, entity);
 }
 
 static void pipelines_parse_json(entity_t *dummy_entity, args_t *args) {
@@ -208,6 +250,8 @@ static void api_do_fetch(CURLM *cm) {
             project_parse_json(entity, &args.arg_channel);
           else if (entity->ent_kind == EK_FETCH_PIPELINES)
             pipelines_parse_json(entity, &args);
+          else if (entity->ent_kind == EK_FETCH_PIPELINE)
+            pipeline_parse_json(entity, &args.arg_channel);
         }
         curl_multi_remove_handle(cm, e);
         curl_easy_cleanup(e);

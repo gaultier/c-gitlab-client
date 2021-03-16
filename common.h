@@ -30,9 +30,9 @@ typedef uint64_t u64;
 typedef uint16_t u16;
 
 typedef struct {
-  i64 pip_id, pip_project_id;
-  sds pip_vcs_ref, pip_url, pip_created_at, pip_updated_at, pip_status,
-      pip_project_path_with_namespace;
+  i64 pip_id, pip_project_id, pip_duration_second;
+  sds pip_vcs_ref, pip_url, pip_created_at, pip_updated_at, pip_started_at,
+      pip_finished_at, pip_status, pip_project_path_with_namespace;
 } pipeline_t;
 
 typedef struct {
@@ -88,6 +88,8 @@ static void pipeline_init(pipeline_t *pipeline, i64 project_id) {
   pipeline->pip_url = sdsempty();
   pipeline->pip_created_at = sdsempty();
   pipeline->pip_updated_at = sdsempty();
+  pipeline->pip_started_at = sdsempty();
+  pipeline->pip_finished_at = sdsempty();
   pipeline->pip_status = sdsempty();
   pipeline->pip_project_path_with_namespace = sdsempty();
 }
@@ -101,6 +103,10 @@ static void pipeline_release(pipeline_t *pipeline) {
   pipeline->pip_created_at = NULL;
   sdsfree(pipeline->pip_updated_at);
   pipeline->pip_updated_at = NULL;
+  sdsfree(pipeline->pip_started_at);
+  pipeline->pip_started_at = NULL;
+  sdsfree(pipeline->pip_finished_at);
+  pipeline->pip_finished_at = NULL;
   sdsfree(pipeline->pip_status);
   pipeline->pip_status = NULL;
   // Don't free it since we do not own it
