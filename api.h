@@ -2,6 +2,15 @@
 
 #include "common.h"
 
+#define JSON_PARSE_STRING_KV(key, json_tokens, i, s, field) \
+  do {                                                      \
+    if (json_eq(s, tok, key, LEN0(key)) == 0) {             \
+      const jsmntok_t *const t = &json_tokens[++i];         \
+      const char *const value = s + t->start;               \
+      field = sdscatlen(field, value, t->end - t->start);   \
+    }                                                       \
+  } while (0)
+
 static jsmntok_t *json_tokens;
 static char url[4097];
 static CURLM *cm = NULL;
@@ -99,36 +108,13 @@ static void pipelines_parse_json(entity_t *dummy_entity, lstack_t *channel) {
 
       pipeline->pip_id = strtoll(value, NULL, 10);
     }
-    if (json_eq(s, tok, "ref", LEN0("ref")) == 0) {
-      const jsmntok_t *const t = &json_tokens[++i];
-      const char *const value = s + t->start;
-      pipeline->pip_vcs_ref =
-          sdscatlen(pipeline->pip_vcs_ref, value, t->end - t->start);
-    }
-    if (json_eq(s, tok, "created_at", LEN0("created_at")) == 0) {
-      const jsmntok_t *const t = &json_tokens[++i];
-      const char *const value = s + t->start;
-      pipeline->pip_created_at =
-          sdscatlen(pipeline->pip_created_at, value, t->end - t->start);
-    }
-    if (json_eq(s, tok, "updated_at", LEN0("updated_at")) == 0) {
-      const jsmntok_t *const t = &json_tokens[++i];
-      const char *const value = s + t->start;
-      pipeline->pip_updated_at =
-          sdscatlen(pipeline->pip_updated_at, value, t->end - t->start);
-    }
-    if (json_eq(s, tok, "status", LEN0("status")) == 0) {
-      const jsmntok_t *const t = &json_tokens[++i];
-      const char *const value = s + t->start;
-      pipeline->pip_status =
-          sdscatlen(pipeline->pip_status, value, t->end - t->start);
-    }
-    if (json_eq(s, tok, "web_url", LEN0("web_url")) == 0) {
-      const jsmntok_t *const t = &json_tokens[++i];
-      const char *const value = s + t->start;
-      pipeline->pip_url =
-          sdscatlen(pipeline->pip_url, value, t->end - t->start);
-    }
+    JSON_PARSE_STRING_KV("ref", json_tokens, i, s, pipeline->pip_vcs_ref);
+    JSON_PARSE_STRING_KV("created_at", json_tokens, i, s,
+                         pipeline->pip_created_at);
+    JSON_PARSE_STRING_KV("updated_at", json_tokens, i, s,
+                         pipeline->pip_updated_at);
+    JSON_PARSE_STRING_KV("status", json_tokens, i, s, pipeline->pip_status);
+    JSON_PARSE_STRING_KV("web_url", json_tokens, i, s, pipeline->pip_url);
   }
   entity_pop(entities, dummy_entity);
   entity_release(dummy_entity);
