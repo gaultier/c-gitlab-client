@@ -123,38 +123,30 @@ static int ui_iso_date_to_short_time(const sds date, const struct tm* now,
 
 static void table_header_draw(table_t* table) {
   int col = 0, x = 0;
-  // Project name
   {
     const char header[] = "PROJECT";
     ui_string_draw(header, LEN0(header), &x, 0, TB_WHITE | TB_BOLD, TB_DEFAULT);
     ui_blank_draw(2 + table->tab_max_width_cols[col++] - LEN0(header), &x, 0,
                   TB_DEFAULT, TB_DEFAULT);
   }
-  // Ref
   {
     const char header[] = "REF";
     ui_string_draw(header, LEN0(header), &x, 0, TB_WHITE | TB_BOLD, TB_DEFAULT);
     ui_blank_draw(2 + table->tab_max_width_cols[col++] - LEN0(header), &x, 0,
                   TB_DEFAULT, TB_DEFAULT);
   }
-
-  // Created
   {
     const char header[] = "CREATED";
     ui_string_draw(header, LEN0(header), &x, 0, TB_WHITE | TB_BOLD, TB_DEFAULT);
     ui_blank_draw(2 + table->tab_max_width_cols[col++] - LEN0(header), &x, 0,
                   TB_DEFAULT, TB_DEFAULT);
   }
-
-  // Status
   {
     const char header[] = "UPDATED";
     ui_string_draw(header, LEN0(header), &x, 0, TB_WHITE | TB_BOLD, TB_DEFAULT);
     ui_blank_draw(2 + table->tab_max_width_cols[col++] - LEN0(header), &x, 0,
                   TB_DEFAULT, TB_DEFAULT);
   }
-
-  // Status
   {
     const char header[] = "STATUS";
     ui_string_draw(header, LEN0(header), &x, 0, TB_WHITE | TB_BOLD, TB_DEFAULT);
