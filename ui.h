@@ -304,10 +304,23 @@ static void table_pull_entities(args_t* args) {
     if (entity->ent_kind == EK_PROJECT) {
       buf_push(table.tab_projects, entity->ent_e.ent_project);
     } else if (entity->ent_kind == EK_PIPELINE) {
+      const pipeline_t* pipeline = &entity->ent_e.ent_pipeline;
       table_add_or_update_pipeline(&entity->ent_e.ent_pipeline);
+      fprintf(log,
+              "C004 | pip_id=%llu pip_duration=%s pip_duration_second=%lld\n",
+              pipeline->pip_id, pipeline->pip_duration,
+              pipeline->pip_duration_second);
     } else
       assert(0 && "Unreachable");
+
     sdsfree(entity->ent_fetch_data);
+  }
+  for (int i = 0; i < buf_size(table.tab_pipelines); i++) {
+    const pipeline_t* const pipeline = &table.tab_pipelines[i];
+    fprintf(log,
+            "C006 | pip_id=%llu pip_duration=%s pip_duration_second=%lld\n",
+            pipeline->pip_id, pipeline->pip_duration,
+            pipeline->pip_duration_second);
   }
   table_update_pipelines_with_projects_info();
   table_calc_size();
