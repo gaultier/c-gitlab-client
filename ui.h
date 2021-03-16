@@ -19,6 +19,8 @@ table_t table;
 static void table_init() {
   table = (table_t){.tab_max_width_cols = {9, 9, 9, 9, 9, 9, 9, 9, 9},
                     .tab_h = tb_height() - 1};  // -1 for header
+  buf_grow(table.tab_projects, 100);
+  buf_grow(table.tab_pipelines, 100);
 }
 
 static void table_scroll_top() { table.tab_y = table.tab_selected = 0; }
