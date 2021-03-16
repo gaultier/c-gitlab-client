@@ -165,7 +165,6 @@ static int common_duration_second_to_short(char *res, u64 res_size,
   const int MINUTE = 60;
   const int HOUR = 60 * MINUTE;
   const int DAY = 24 * HOUR;
-  const int WEEK = 7 * DAY;
   const int MONTH = 30 * DAY;
   const int YEAR = 365 * DAY;
 
@@ -175,10 +174,8 @@ static int common_duration_second_to_short(char *res, u64 res_size,
     return sprintf(res, "%llum", duration / MINUTE);
   else if (duration < DAY)
     return sprintf(res, "%lluh", duration / HOUR);
-  else if (duration < WEEK)
-    return sprintf(res, "%llud", duration / DAY);
   else if (duration < MONTH)
-    return sprintf(res, "%lluw", duration / WEEK);
+    return sprintf(res, "%llud", duration / DAY);
   else if (duration < YEAR)
     return sprintf(res, "%lluM", duration / MONTH);
   else if (duration / YEAR < 100)
