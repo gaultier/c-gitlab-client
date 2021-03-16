@@ -25,6 +25,18 @@ static void table_scroll_top(table_t* table) {
   table->tab_y = table->tab_selected = 0;
 }
 
+static int pipeline_compare(const void* a, const void* b) {
+  const pipeline_t* const pa = a;
+  const pipeline_t* const pb = b;
+
+  return pb->pip_updated_at_time - pa->pip_updated_at_time;
+}
+
+static void table_sort() {
+  qsort(table.tab_pipelines, buf_size(table.tab_pipelines), sizeof(pipeline_t),
+        pipeline_compare);
+}
+
 static void table_scroll_bottom(table_t* table) {
   table->tab_y = buf_size(table->tab_pipelines) - table->tab_h;
   if (table->tab_y < 0) table->tab_y = 0;
@@ -138,6 +150,7 @@ static void table_header_draw(table_t* table) {
 }
 
 static void table_draw(table_t* table) {
+  table_sort();
   table_header_draw(table);
   CHECK(table->tab_h, >, 0, "%d");
   CHECK(table->tab_y, >=, 0, "%d");
@@ -245,18 +258,6 @@ static void table_pull_entities(args_t* args) {
   table_calc_size();
 }
 
-static int pipeline_compare(const void* a, const void* b) {
-  const pipeline_t* const pa = a;
-  const pipeline_t* const pb = b;
-
-  return pb->pip_updated_at_time - pa->pip_updated_at_time;
-}
-
-static void table_sort() {
-  qsort(table.tab_pipelines, buf_size(table.tab_pipelines), sizeof(pipeline_t),
-        pipeline_compare);
-}
-
 static void ui_run(args_t* args) {
   table_init();
 
@@ -264,7 +265,6 @@ static void ui_run(args_t* args) {
   while (1) {
     tb_peek_event(&event, 500);
     table_pull_entities(args);
-    table_sort();
 
     switch (event.type) {
       case TB_EVENT_RESIZE:
