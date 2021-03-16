@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.h"
+#include "deps/sds/sds.h"
 
 #define JSON_PARSE_KV_STRING(key, json_tokens, i, s, field) \
   do {                                                      \
@@ -28,17 +29,6 @@ static char url[4097];
 static CURLM *cm = NULL;
 
 static void api_init() { cm = curl_multi_init(); }
-
-static sds api_duration_second_to_short(sds s, u64 duration) {
-  if (duration < 60)
-    return sdscatprintf(s, "%llus", duration);
-  else if (duration < 60 * 60)
-    return sdscatprintf(s, "%llum", duration / 60);
-  else if (duration < 60 * 60 * 24)
-    return sdscatprintf(s, "%lluh", duration / 60 / 60);
-  else
-    return sdscat(s, "> 1d");
-}
 
 static size_t curl_write_cb(char *data, size_t n, size_t l, void *userp) {
   entity_t *entity = userp;
@@ -156,8 +146,11 @@ static void pipeline_parse_json(entity_t *entity, lstack_t *channel) {
     pipeline->pip_started_at_time = mktime(&time);
   if (strptime(pipeline->pip_finished_at, "%FT%T", &time))
     pipeline->pip_finished_at_time = mktime(&time);
-  pipeline->pip_duration = api_duration_second_to_short(
-      pipeline->pip_duration, pipeline->pip_duration_second);
+  pipeline->pip_duration = sdsgrowzero(pipeline->pip_duration, 20);
+  int len = common_duration_second_to_short(pipeline->pip_duration,
+                                            sdsalloc(pipeline->pip_duration),
+                                            pipeline->pip_duration_second);
+  sdssetlen(pipeline->pip_duration, len);
 
   lstack_push(channel, entity);
 }

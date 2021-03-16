@@ -171,9 +171,7 @@ static void table_draw(table_t* table) {
   CHECK(table->tab_y, >=, 0, "%d");
   CHECK(table->tab_selected, >=, 0, "%d");
 
-  time_t now_epoch = time(NULL);
-  struct tm now;
-  gmtime_r(&now_epoch, &now);
+  time_t now = time(NULL);
 
   for (int i = 0; i < table->tab_h; i++) {
     int p = i + table->tab_y, y = i + 1, x = 0, col = 0;
@@ -207,14 +205,16 @@ static void table_draw(table_t* table) {
     int width = 0;
     {
       memset(res, 0, LEN0(res));
-      width = ui_iso_date_to_short_time(pipeline->pip_created_at, &now, res);
+      u64 diff = difftime(now, pipeline->pip_created_at_time);
+      width = common_duration_second_to_short(res, LEN0(res), diff);
       ui_string_draw(res, width, &x, y, fg, bg);
       ui_blank_draw(2 + table->tab_max_width_cols[col++] - width, &x, y, fg,
                     bg);
     }
     {
       memset(res, 0, LEN0(res));
-      width = ui_iso_date_to_short_time(pipeline->pip_updated_at, &now, res);
+      u64 diff = difftime(now, pipeline->pip_updated_at_time);
+      width = common_duration_second_to_short(res, LEN0(res), diff);
       ui_string_draw(res, width, &x, y, fg, bg);
       ui_blank_draw(2 + table->tab_max_width_cols[col++] - width, &x, y, fg,
                     bg);
