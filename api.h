@@ -74,6 +74,8 @@ static void project_parse_json(entity_t *entity, lstack_t *channel) {
 
 static void pipeline_queue_fetch(CURLM *cm, u64 project_id, u64 pipeline_id,
                                  args_t *args) {
+  fprintf(log, "P002 | project_id=%lld pipeline_id=%lld\n", project_id,
+          pipeline_id);
   memset(url, 0, sizeof(url));
 
   if (args->arg_gitlab_token)
@@ -157,8 +159,12 @@ static void pipeline_parse_json(entity_t *entity, lstack_t *channel) {
                                             sdsalloc(pipeline->pip_duration),
                                             pipeline->pip_duration_second);
   sdssetlen(pipeline->pip_duration, len);
+
   pipeline->pip_id_s = sdsfromlonglong(pipeline->pip_id);
 
+  fprintf(log, "P001 | pip_id=%lld pip_duration_second=%lld pip_duration=%s\n",
+          pipeline->pip_id, (i64)pipeline->pip_duration_second,
+          pipeline->pip_duration);
   lstack_push(channel, entity);
 }
 
@@ -190,6 +196,7 @@ static void pipelines_parse_json(entity_t *dummy_entity, args_t *args) {
         pipeline_queue_fetch(cm, e_pipeline->ent_e.ent_pipeline.pip_project_id,
                              e_pipeline->ent_e.ent_pipeline.pip_id, args);
         // Post-processing
+        CHECK(e_pipeline->ent_kind, ==, EK_PIPELINE, "%d");
         struct tm time = {0};
         strptime(pipeline->pip_created_at, "%FT%T", &time);
         pipeline->pip_created_at_time = timegm(&time);
@@ -213,6 +220,21 @@ static void pipelines_parse_json(entity_t *dummy_entity, args_t *args) {
                          pipeline->pip_updated_at);
     JSON_PARSE_KV_STRING("status", json_tokens, i, s, pipeline->pip_status);
     JSON_PARSE_KV_STRING("web_url", json_tokens, i, s, pipeline->pip_url);
+  }
+
+  if (e_pipeline) {
+    pipeline_queue_fetch(cm, e_pipeline->ent_e.ent_pipeline.pip_project_id,
+                         e_pipeline->ent_e.ent_pipeline.pip_id, args);
+    // Post-processing
+    CHECK(e_pipeline->ent_kind, ==, EK_PIPELINE, "%d");
+    struct tm time = {0};
+    strptime(pipeline->pip_created_at, "%FT%T", &time);
+    pipeline->pip_created_at_time = timegm(&time);
+    strptime(pipeline->pip_updated_at, "%FT%T", &time);
+    pipeline->pip_updated_at_time = timegm(&time);
+    pipeline->pip_id_s = sdsfromlonglong(pipeline->pip_id);
+
+    lstack_push(&args->arg_channel, e_pipeline);
   }
   entity_release(dummy_entity);
 }
@@ -283,7 +305,13 @@ static void api_do_fetch(CURLM *cm) {
             pipelines_parse_json(entity, &args);
           else if (entity->ent_kind == EK_FETCH_PIPELINE)
             pipeline_parse_json(entity, &args.arg_channel);
+          else
+            assert(0 && "Unreachable");
+        } else {
+          fprintf(log, "P003 | error\n");
+          entity_release(entity);
         }
+
         curl_multi_remove_handle(cm, e);
         curl_easy_cleanup(e);
       } else {

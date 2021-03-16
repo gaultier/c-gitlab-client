@@ -19,6 +19,7 @@ static void help_print(char* program_name) {
 }
 
 int main(int argc, char* argv[]) {
+  log_init();
   api_init();
 
   char* argv0 = argv[0];
