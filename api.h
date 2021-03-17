@@ -127,7 +127,6 @@ static void pipeline_parse_json(entity_t *entity, lstack_t *channel) {
 
   pipeline_t *pipeline = &entity->ent_e.ent_pipeline;
   for (i64 i = 1; i < res; i++) {
-    JSON_PARSE_KV_NUMBER("id", json_tokens, i, s, pipeline->pip_id);
     JSON_PARSE_KV_STRING("ref", json_tokens, i, s, pipeline->pip_vcs_ref);
     JSON_PARSE_KV_STRING("created_at", json_tokens, i, s,
                          pipeline->pip_created_at);
