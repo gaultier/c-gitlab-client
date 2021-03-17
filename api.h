@@ -78,8 +78,6 @@ static void project_parse_json(entity_t *entity, lstack_t *channel) {
 
 static void pipeline_queue_fetch(CURLM *cm, u64 project_id, u64 pipeline_id,
                                  args_t *args) {
-  fprintf(log, "P002 | project_id=%lld pipeline_id=%lld\n", project_id,
-          pipeline_id);
   memset(url, 0, sizeof(url));
 
   if (args->arg_gitlab_token)
@@ -173,9 +171,6 @@ static void pipeline_parse_json(entity_t *entity, lstack_t *channel) {
 
   pipeline->pip_id_s = sdsfromlonglong(pipeline->pip_id);
 
-  fprintf(log, "P001 | pip_id=%lld pip_duration_second=%lld pip_duration=%s\n",
-          pipeline->pip_id, (i64)pipeline->pip_duration_second,
-          pipeline->pip_duration);
   lstack_push(channel, entity);
 }
 
@@ -191,11 +186,6 @@ static void pipelines_parse_json(entity_t *dummy_entity, args_t *args) {
   int res = jsmn_parse(&parser, s, sdslen((char *)s), json_tokens,
                        buf_capacity(json_tokens));
   if (res <= 0 || json_tokens[0].type != JSMN_ARRAY) {
-    fprintf(log,
-            "P102 | %s:%d:Malformed JSON for project pipelines: url=%s "
-            "json=%s\n",
-            __FILE__, __LINE__, dummy_entity->ent_api_url,
-            dummy_entity->ent_fetch_data);
     entity_release(dummy_entity);
     return;
   }
@@ -313,7 +303,7 @@ static void api_do_fetch(CURLM *cm) {
       if (msg->msg == CURLMSG_DONE) {
         i64 http_code = 0;
         curl_easy_getinfo(msg->easy_handle, CURLINFO_RESPONSE_CODE, &http_code);
-        fprintf(log, "D014 | http_code=%lld url=%s data=%s ent_kind=%d\n",
+        fprintf(log, "P014 | http_code=%lld url=%s data=%s ent_kind=%d\n",
                 http_code, entity->ent_api_url, entity->ent_fetch_data,
                 entity->ent_kind);
 
