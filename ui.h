@@ -5,6 +5,12 @@
 #include "deps/termbox/src/termbox.h"
 #include "deps/termbox/src/utf8.c"
 
+#ifdef __APPLE__
+#define OPEN_CMD "open"
+#else
+#define OPEN_CMD "xdg-open"
+#endif
+
 static const int ui_margin = 1;
 
 typedef struct {
@@ -334,6 +340,12 @@ static void ui_run(args_t* args) {
           table_scroll_bottom();
         } else if (event.ch == 'g') {
           table_scroll_top();
+        } else if ((event.ch == 'o' || event.ch == 'O') &&
+                   sdslen(table.tab_pipelines[table.tab_selected].pip_url)) {
+          sds cmd = sdscatfmt(sdsempty(), OPEN_CMD " %s",
+                              table.tab_pipelines[table.tab_selected].pip_url);
+          system(cmd);
+          sdsfree(cmd);
         }
         tb_clear();
         table_draw();

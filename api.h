@@ -8,7 +8,9 @@
     if (json_eq(s, tok, key, LEN0(key)) == 0) {             \
       const jsmntok_t *const t = &json_tokens[++i];         \
       const char *const value = s + t->start;               \
+      if (sdslen(field)) sdssetlen(field, 0);               \
       field = sdscatlen(field, value, t->end - t->start);   \
+      continue;                                             \
     }                                                       \
   } while (0)
 
@@ -20,6 +22,7 @@
       if (t->type != JSMN_PRIMITIVE) break;                 \
       const char *const value = s + t->start;               \
       field = strtoll(value, NULL, 10);                     \
+      continue;                                             \
     }                                                       \
   } while (0)
 
@@ -125,6 +128,26 @@ static void pipeline_parse_json(entity_t *entity, lstack_t *channel) {
 
   pipeline_t *pipeline = &entity->ent_e.ent_pipeline;
   for (i64 i = 1; i < res; i++) {
+    const jsmntok_t *key = &json_tokens[i];
+    const int key_len = key->end - key->start;
+    const char *const key_s = &s[key->start];
+    // Skip 'user' object for now
+    if (key->type == JSMN_STRING && key_len == LEN0("user") &&
+        memcmp("user", key_s, key_len) == 0 &&
+        json_tokens[i + 1].type == JSMN_OBJECT) {
+      const jsmntok_t *const val = &json_tokens[i + 1];
+      i += 1 + 2 * val->size;
+      continue;
+    }
+    // Skip 'detailed_status' for now
+    if (json_eq(s, &json_tokens[i], "detailed_status",
+                LEN0("detailed_status") == 0) &&
+        json_tokens[i + 1].type == JSMN_OBJECT) {
+      const jsmntok_t *const val = &json_tokens[i + 1];
+      i += 1 + 2 * val->size;
+      continue;
+    }
+
     JSON_PARSE_KV_STRING("ref", json_tokens, i, s, pipeline->pip_vcs_ref);
     JSON_PARSE_KV_STRING("created_at", json_tokens, i, s,
                          pipeline->pip_created_at);
