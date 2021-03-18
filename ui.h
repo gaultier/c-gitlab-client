@@ -44,17 +44,19 @@ static void table_sort() {
 }
 
 static void table_scroll_bottom() {
-  table.tab_y = buf_size(table.tab_pipelines) - table.tab_h;
-  if (table.tab_y < 0) table.tab_y = 0;
-  if (table.tab_y > (int)buf_size(table.tab_pipelines))
-    table.tab_y = buf_size(table.tab_pipelines) - 1;
+  if (buf_size(table.tab_pipelines) == 0) return;
 
-  table.tab_selected = MAX(0, buf_size(table.tab_pipelines) - 1);
+  table.tab_y = buf_size(table.tab_pipelines) - table.tab_h;
+  CLAMP(table.tab_y, 0, (int)buf_size(table.tab_pipelines) - 1);
+
+  table.tab_selected = (int)buf_size(table.tab_pipelines) - 1;
 }
 
 static void table_resize() {
   table.tab_h = tb_height() - 1;
-  table.tab_y = MAX(0, MAX(table.tab_y, table.tab_h));
+  table.tab_y = table.tab_selected - table.tab_h - 1;
+  CLAMP(table.tab_y, 0, (int)buf_size(table.tab_pipelines) - 1);
+  CLAMP(table.tab_y, 0, table.tab_h - 1);
 }
 
 static void pipeline_merge(pipeline_t* before, pipeline_t* after) {
@@ -308,8 +310,8 @@ static void table_pull_entities(args_t* args) {
 static void ui_run(args_t* args) {
   table_init();
 
-  struct tb_event event;
   while (1) {
+    struct tb_event event = {0};
     tb_peek_event(&event, 500);
     table_pull_entities(args);
 
@@ -348,6 +350,7 @@ static void ui_run(args_t* args) {
           sdsfree(cmd);
         }
         tb_clear();
+        table_resize();
         table_draw();
         tb_present();
         break;
