@@ -74,12 +74,12 @@ typedef enum {
 } entity_kind_t;
 
 struct entity_t {
-  entity_kind_t ent_kind;
-  sds ent_fetch_data, ent_api_url;
   union {
     pipeline_t ent_pipeline;
     project_t ent_project;
   } ent_e;
+  entity_kind_t ent_kind;
+  sds ent_fetch_data, ent_api_url;
 };
 typedef struct entity_t entity_t;
 
@@ -159,9 +159,28 @@ static entity_t *entity_new(entity_kind_t kind) {
   return entity;
 }
 
-static void entity_release(entity_t *entity) {
+static void project_shrink(project_t *project) {
+  sdsRemoveFreeSpace(project->pro_name);
+  sdsRemoveFreeSpace(project->pro_path_with_namespace);
+}
+
+static void entity_shrink(entity_t *entity) {
   sdsfree(entity->ent_fetch_data);
   entity->ent_fetch_data = NULL;
+
+  sdsfree(entity->ent_api_url);
+  entity->ent_api_url = NULL;
+
+  if (entity->ent_kind == EK_PROJECT)
+    project_shrink(&entity->ent_e.ent_project);
+  else if (entity->ent_kind == EK_PIPELINE)
+    pipeline_shrink(&entity->ent_e.ent_pipeline);
+}
+
+static void entity_release(entity_t *entity) {
+  /* sdsfree(entity->ent_fetch_data); */
+  /* entity->ent_fetch_data = NULL; */
+
   sdsfree(entity->ent_api_url);
   entity->ent_api_url = NULL;
 
@@ -169,8 +188,6 @@ static void entity_release(entity_t *entity) {
     project_release(&entity->ent_e.ent_project);
   else if (entity->ent_kind == EK_PIPELINE)
     pipeline_release(&entity->ent_e.ent_pipeline);
-
-  free(entity);
 }
 
 static int common_duration_second_to_short(char *res, u64 res_size,

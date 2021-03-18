@@ -76,6 +76,9 @@ static void project_parse_json(entity_t *entity, lstack_t *channel) {
                          project->pro_path_with_namespace);
   }
   entity->ent_kind = EK_PROJECT;
+  sdsfree(entity->ent_fetch_data);
+  entity->ent_fetch_data = NULL;
+
   lstack_push(channel, entity);
 }
 
@@ -194,6 +197,9 @@ static void pipeline_parse_json(entity_t *entity, lstack_t *channel) {
 
   pipeline->pip_id_s = sdsfromlonglong(pipeline->pip_id);
 
+  sdsfree(entity->ent_fetch_data);
+  entity->ent_fetch_data = NULL;
+
   lstack_push(channel, entity);
 }
 
@@ -230,6 +236,9 @@ static void pipelines_parse_json(entity_t *dummy_entity, args_t *args) {
         pipeline->pip_updated_at_time = timegm(&time);
         pipeline->pip_id_s = sdsfromlonglong(pipeline->pip_id);
 
+        sdsfree(e_pipeline->ent_fetch_data);
+        e_pipeline->ent_fetch_data = NULL;
+
         lstack_push(&args->arg_channel, e_pipeline);
       }
       e_pipeline = entity_new(EK_PIPELINE);
@@ -259,6 +268,9 @@ static void pipelines_parse_json(entity_t *dummy_entity, args_t *args) {
     strptime(pipeline->pip_updated_at, "%FT%T", &time);
     pipeline->pip_updated_at_time = timegm(&time);
     pipeline->pip_id_s = sdsfromlonglong(pipeline->pip_id);
+
+    sdsfree(e_pipeline->ent_fetch_data);
+    e_pipeline->ent_fetch_data = NULL;
 
     lstack_push(&args->arg_channel, e_pipeline);
   }
