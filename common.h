@@ -63,7 +63,7 @@ typedef struct {
 
 typedef struct {
   i64 pro_id;
-  sds pro_name, pro_path_with_namespace;
+  sds pro_path_with_namespace;
 } project_t;
 
 typedef enum {
@@ -102,7 +102,6 @@ static void args_init(args_t *args) {
 
 static void project_init(project_t *project, i64 id) {
   project->pro_id = id;
-  project->pro_name = sdsempty();
   project->pro_path_with_namespace = sdsempty();
 }
 
@@ -154,9 +153,6 @@ static void pipeline_release(pipeline_t *pipeline) {
 }
 
 static void project_release(project_t *project) {
-  sdsfree(project->pro_name);
-  project->pro_name = NULL;
-
   sdsfree(project->pro_path_with_namespace);
   project->pro_path_with_namespace = NULL;
 }
@@ -173,9 +169,6 @@ static entity_t *entity_new(entity_kind_t kind) {
 
 static void project_shrink(project_t *project) {
   assert(project);
-
-  if (project->pro_name)
-    project->pro_name = sdsRemoveFreeSpace(project->pro_name);
 
   if (project->pro_path_with_namespace)
     project->pro_path_with_namespace =

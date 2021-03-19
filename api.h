@@ -74,7 +74,6 @@ static void api_project_parse_json(entity_t *entity, lstack_t *channel) {
   }
 
   for (i64 i = 1; i < res; i++) {
-    JSON_PARSE_KV_STRING("name", api_json_tokens, i, s, project->pro_name);
     JSON_PARSE_KV_STRING("path_with_namespace", api_json_tokens, i, s,
                          project->pro_path_with_namespace);
   }
