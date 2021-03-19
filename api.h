@@ -63,7 +63,7 @@ static void project_parse_json(entity_t *entity, lstack_t *channel) {
                        buf_capacity(json_tokens));
   if (res <= 0 || json_tokens[0].type != JSMN_OBJECT) {
     fprintf(stderr,
-            "P100 | %s:%d:Malformed JSON for project: url=%s "
+            "%s:%d:Malformed JSON for project: url=%s "
             "json=%s\n",
             __FILE__, __LINE__, entity->ent_api_url, entity->ent_fetch_data);
     entity_release(entity);
@@ -121,7 +121,7 @@ static void pipeline_parse_json(entity_t *entity, lstack_t *channel) {
                        buf_capacity(json_tokens));
   if (res <= 0 || json_tokens[0].type != JSMN_OBJECT) {
     fprintf(stderr,
-            "P101 | %s:%d:Malformed JSON for pipeline: url=%s "
+            "%s:%d:Malformed JSON for pipeline: url=%s "
             "json=%s\n",
             __FILE__, __LINE__, entity->ent_api_url, entity->ent_fetch_data);
     entity_release(entity);
@@ -331,9 +331,11 @@ static void api_do_fetch(CURLM *cm) {
       if (msg->msg == CURLMSG_DONE) {
         i64 http_code = 0;
         curl_easy_getinfo(msg->easy_handle, CURLINFO_RESPONSE_CODE, &http_code);
-        fprintf(stderr, "P014 | http_code=%lld url=%s data=%s ent_kind=%d\n",
-                http_code, entity->ent_api_url, entity->ent_fetch_data,
-                entity->ent_kind);
+        if (http_code != 200) {
+          fprintf(stderr, "%s:%d:%lld url=%s data=%s ent_kind=%d\n", __FILE__,
+                  __LINE__, http_code, entity->ent_api_url,
+                  entity->ent_fetch_data, entity->ent_kind);
+        }
 
         if (entity->ent_kind == EK_FETCH_PROJECT)
           project_parse_json(entity, &args.arg_channel);
@@ -347,7 +349,8 @@ static void api_do_fetch(CURLM *cm) {
         curl_multi_remove_handle(cm, e);
         curl_easy_cleanup(e);
       } else {
-        fprintf(stderr, "Failed to fetch from API: err=%d\n", msg->msg);
+        fprintf(stderr, "%s:%d:Failed to fetch from API: err=%d\n", __FILE__,
+                __LINE__, msg->msg);
         entity_release(entity);
       }
     }
