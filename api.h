@@ -62,7 +62,7 @@ static void project_parse_json(entity_t *entity, lstack_t *channel) {
   int res = jsmn_parse(&parser, s, sdslen((char *)s), json_tokens,
                        buf_capacity(json_tokens));
   if (res <= 0 || json_tokens[0].type != JSMN_OBJECT) {
-    fprintf(log,
+    fprintf(stderr,
             "P100 | %s:%d:Malformed JSON for project: url=%s "
             "json=%s\n",
             __FILE__, __LINE__, entity->ent_api_url, entity->ent_fetch_data);
@@ -120,7 +120,7 @@ static void pipeline_parse_json(entity_t *entity, lstack_t *channel) {
   int res = jsmn_parse(&parser, s, sdslen((char *)s), json_tokens,
                        buf_capacity(json_tokens));
   if (res <= 0 || json_tokens[0].type != JSMN_OBJECT) {
-    fprintf(log,
+    fprintf(stderr,
             "P101 | %s:%d:Malformed JSON for pipeline: url=%s "
             "json=%s\n",
             __FILE__, __LINE__, entity->ent_api_url, entity->ent_fetch_data);
@@ -331,7 +331,7 @@ static void api_do_fetch(CURLM *cm) {
       if (msg->msg == CURLMSG_DONE) {
         i64 http_code = 0;
         curl_easy_getinfo(msg->easy_handle, CURLINFO_RESPONSE_CODE, &http_code);
-        fprintf(log, "P014 | http_code=%lld url=%s data=%s ent_kind=%d\n",
+        fprintf(stderr, "P014 | http_code=%lld url=%s data=%s ent_kind=%d\n",
                 http_code, entity->ent_api_url, entity->ent_fetch_data,
                 entity->ent_kind);
 

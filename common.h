@@ -268,10 +268,3 @@ static int common_duration_second_to_short(char *res, u64 res_size,
   else
     return sprintf(res, "?");
 }
-
-static FILE *log = NULL;
-static FILE *log_init() {
-  log = fopen("/tmp/gitlab_client.log", "w");
-  CHECK((void *)log, !=, NULL, "%p");
-  return log;
-}
