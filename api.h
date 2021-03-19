@@ -29,8 +29,27 @@
 static jsmntok_t *json_tokens;
 static char url[4097];
 static CURLM *cm = NULL;
+static i64 *api_pipeline_ids = NULL;
 
-static void api_init() { cm = curl_multi_init(); }
+static void api_init() {
+  curl_global_init(CURL_GLOBAL_ALL);
+  cm = curl_multi_init();
+  buf_grow(api_pipeline_ids, 100);
+}
+
+static void api_add_pipeline_id_if_not_exists(i64 id) {
+  for (int i = 0; i < (int)buf_size(api_pipeline_ids); i++) {
+    if (api_pipeline_ids[i] == id) return;
+  }
+  buf_push(api_pipeline_ids, id);
+}
+
+static bool api_pipeline_id_exists(i64 id) {
+  for (int i = 0; i < (int)buf_size(api_pipeline_ids); i++) {
+    if (api_pipeline_ids[i] == id) return true;
+  }
+  return false;
+}
 
 static size_t curl_write_cb(char *data, size_t n, size_t l, void *userp) {
   entity_t *entity = userp;
@@ -83,6 +102,8 @@ static void project_parse_json(entity_t *entity, lstack_t *channel) {
 
 static void pipeline_queue_fetch(CURLM *cm, u64 project_id, u64 pipeline_id,
                                  args_t *args) {
+  if (api_pipeline_id_exists(pipeline_id)) return;
+
   memset(url, 0, sizeof(url));
 
   if (args->arg_gitlab_token)
@@ -197,6 +218,7 @@ static void pipeline_parse_json(entity_t *entity, lstack_t *channel) {
   pipeline->pip_id_s = sdsfromlonglong(pipeline->pip_id);
 
   entity_shrink(entity);
+  api_add_pipeline_id_if_not_exists(pipeline->pip_id);
   lstack_push(channel, entity);
 }
 
@@ -361,7 +383,6 @@ static void api_do_fetch(CURLM *cm) {
 
 static void *fetch(void *v_args) {
   args_t *args = v_args;
-  curl_global_init(CURL_GLOBAL_ALL);
 
   // Fetch projects
   for (u64 i = 0; i < buf_size(args->arg_project_ids); i++) {
