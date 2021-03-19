@@ -204,8 +204,8 @@ static void entity_shrink(entity_t *entity) {
 }
 
 static void entity_release(entity_t *entity) {
-  /* sdsfree(entity->ent_fetch_data); */
-  /* entity->ent_fetch_data = NULL; */
+  sdsfree(entity->ent_fetch_data);
+  entity->ent_fetch_data = NULL;
 
   sdsfree(entity->ent_api_url);
   entity->ent_api_url = NULL;
