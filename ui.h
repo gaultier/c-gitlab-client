@@ -300,7 +300,7 @@ static void table_update_pipelines_with_projects_info() {
   }
 }
 
-static void table_pull_entities(args_t* args) {
+static void ui_pull_entities(args_t* args) {
   entity_t* entity = NULL;
   while ((entity = lstack_pop(&args->arg_channel))) {
     if (entity->ent_kind == EK_PROJECT) {
@@ -320,7 +320,7 @@ static void ui_run(args_t* args) {
   while (1) {
     struct tb_event event = {0};
     tb_peek_event(&event, 500);
-    table_pull_entities(args);
+    ui_pull_entities(args);
 
     switch (event.type) {
       case TB_EVENT_RESIZE:
