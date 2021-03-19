@@ -55,8 +55,7 @@ typedef uint16_t u16;
 typedef struct {
   i64 pip_id, pip_project_id, pip_duration_second;
   sds pip_vcs_ref, pip_url, pip_created_at, pip_updated_at, pip_started_at,
-      pip_finished_at, pip_status, pip_project_path_with_namespace,
-      pip_duration, pip_id_s;
+      pip_finished_at, pip_status, pip_project_path_with_namespace, pip_id_s;
   time_t pip_created_at_time, pip_updated_at_time, pip_started_at_time,
       pip_finished_at_time;
 } pipeline_t;
@@ -116,7 +115,6 @@ static void pipeline_init(pipeline_t *pipeline, i64 project_id) {
   pipeline->pip_finished_at = sdsempty();
   pipeline->pip_status = sdsempty();
   pipeline->pip_project_path_with_namespace = sdsempty();
-  pipeline->pip_duration = sdsempty();
   pipeline->pip_id_s = sdsempty();
 }
 
@@ -141,9 +139,6 @@ static void pipeline_release(pipeline_t *pipeline) {
 
   sdsfree(pipeline->pip_status);
   pipeline->pip_status = NULL;
-
-  sdsfree(pipeline->pip_duration);
-  pipeline->pip_duration = NULL;
 
   sdsfree(pipeline->pip_id_s);
   pipeline->pip_id_s = NULL;
@@ -198,9 +193,6 @@ static void pipeline_shrink(pipeline_t *pipeline) {
 
   if (pipeline->pip_status)
     pipeline->pip_status = sdsRemoveFreeSpace(pipeline->pip_status);
-
-  if (pipeline->pip_duration)
-    pipeline->pip_duration = sdsRemoveFreeSpace(pipeline->pip_duration);
 
   if (pipeline->pip_id_s)
     pipeline->pip_id_s = sdsRemoveFreeSpace(pipeline->pip_id_s);

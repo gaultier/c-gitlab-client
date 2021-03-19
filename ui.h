@@ -78,9 +78,6 @@ static void pipeline_merge(pipeline_t* before, pipeline_t* after) {
   if (before->pip_finished_at && sdslen(before->pip_finished_at))
     after->pip_finished_at = sdsdup(before->pip_finished_at);
 
-  if (before->pip_duration && sdslen(before->pip_duration))
-    after->pip_duration = sdsdup(before->pip_duration);
-
   if (before->pip_duration_second)
     after->pip_duration_second = before->pip_duration_second;
 }
@@ -255,11 +252,23 @@ static void table_draw() {
                     fg, bg);
     }
     {
-      ui_string_draw(pipeline->pip_duration, sdslen(pipeline->pip_duration), &x,
-                     y, fg, bg);
-      ui_blank_draw(ui_margin + table.tab_max_width_cols[col++] -
-                        sdslen(pipeline->pip_duration),
-                    &x, y, fg, bg);
+      static char duration[30];
+      memset(duration, 0, sizeof(duration));
+      u64 duration_second = 0;
+      if (pipeline->pip_started_at_time) {
+        duration_second =
+            (pipeline->pip_finished_at_time ? pipeline->pip_finished_at_time
+                                            : time(0)) -
+            pipeline->pip_started_at_time;
+      }
+      int len = 0;
+      if (duration_second >= 0) {
+        len = common_duration_second_to_short(duration, LEN0(duration),
+                                              duration_second);
+      }
+      ui_string_draw(duration, len, &x, y, fg, bg);
+      ui_blank_draw(ui_margin + table.tab_max_width_cols[col++] - len, &x, y,
+                    fg, bg);
     }
     {
       char status[40] = "";

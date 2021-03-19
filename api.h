@@ -185,17 +185,6 @@ static void api_pipeline_parse_json(entity_t *entity, lstack_t *channel) {
   if (strptime(pipeline->pip_finished_at, "%FT%T", &time))
     pipeline->pip_finished_at_time = timegm(&time);
 
-  pipeline->pip_duration = sdsgrowzero(pipeline->pip_duration, 20);
-  sdssetlen(pipeline->pip_duration, 0);
-  CHECK((u64)sdslen(pipeline->pip_duration), ==, 0LLU, "%llu");
-  CHECK((u64)sdsalloc(pipeline->pip_duration), >=, 20LLU, "%llu");
-
-  int len = common_duration_second_to_short(pipeline->pip_duration,
-                                            sdsalloc(pipeline->pip_duration),
-                                            pipeline->pip_duration_second);
-  CHECK(len, >, 0, "%d");
-  sdssetlen(pipeline->pip_duration, len);
-
   pipeline->pip_id_s = sdsfromlonglong(pipeline->pip_id);
 
   entity_shrink(entity);
