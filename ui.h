@@ -91,7 +91,7 @@ static void table_add_or_update_pipeline(pipeline_t* pipeline) {
       /* entity_release((entity_t*)&table.tab_pipelines[i]); */
       table.tab_pipelines[i] = *pipeline;
 
-      free(pipeline);
+      /* free(pipeline); */
       return;
     }
   }
