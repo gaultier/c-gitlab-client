@@ -123,20 +123,28 @@ static void pipeline_init(pipeline_t *pipeline, i64 project_id) {
 static void pipeline_release(pipeline_t *pipeline) {
   sdsfree(pipeline->pip_vcs_ref);
   pipeline->pip_vcs_ref = NULL;
+
   sdsfree(pipeline->pip_url);
   pipeline->pip_url = NULL;
+
   sdsfree(pipeline->pip_created_at);
   pipeline->pip_created_at = NULL;
+
   sdsfree(pipeline->pip_updated_at);
   pipeline->pip_updated_at = NULL;
+
   sdsfree(pipeline->pip_started_at);
   pipeline->pip_started_at = NULL;
+
   sdsfree(pipeline->pip_finished_at);
   pipeline->pip_finished_at = NULL;
+
   sdsfree(pipeline->pip_status);
   pipeline->pip_status = NULL;
+
   sdsfree(pipeline->pip_duration);
   pipeline->pip_duration = NULL;
+
   sdsfree(pipeline->pip_id_s);
   pipeline->pip_id_s = NULL;
 
@@ -147,7 +155,8 @@ static void pipeline_release(pipeline_t *pipeline) {
 static void project_release(project_t *project) {
   sdsfree(project->pro_name);
   project->pro_name = NULL;
-  /* sdsfree(project->pro_path_with_namespace); */
+
+  sdsfree(project->pro_path_with_namespace);
   project->pro_path_with_namespace = NULL;
 }
 
@@ -162,6 +171,7 @@ static entity_t *entity_new(entity_kind_t kind) {
 static void project_shrink(project_t *project) {
   if (project->pro_name)
     project->pro_name = sdsRemoveFreeSpace(project->pro_name);
+
   if (project->pro_path_with_namespace)
     project->pro_path_with_namespace =
         sdsRemoveFreeSpace(project->pro_path_with_namespace);
@@ -170,22 +180,28 @@ static void project_shrink(project_t *project) {
 static void pipeline_shrink(pipeline_t *pipeline) {
   if (pipeline->pip_vcs_ref)
     pipeline->pip_vcs_ref = sdsRemoveFreeSpace(pipeline->pip_vcs_ref);
-  sdsfree(pipeline->pip_url);
+
+  if (pipeline->pip_url)
+    pipeline->pip_url = sdsRemoveFreeSpace(pipeline->pip_url);
+
   if (pipeline->pip_created_at)
     pipeline->pip_created_at = sdsRemoveFreeSpace(pipeline->pip_created_at);
+
   if (pipeline->pip_updated_at)
     pipeline->pip_updated_at = sdsRemoveFreeSpace(pipeline->pip_updated_at);
+
   if (pipeline->pip_started_at)
     pipeline->pip_started_at = sdsRemoveFreeSpace(pipeline->pip_started_at);
+
   if (pipeline->pip_finished_at)
     pipeline->pip_finished_at = sdsRemoveFreeSpace(pipeline->pip_finished_at);
+
   if (pipeline->pip_status)
     pipeline->pip_status = sdsRemoveFreeSpace(pipeline->pip_status);
-  if (pipeline->pip_project_path_with_namespace)
-    pipeline->pip_project_path_with_namespace =
-        sdsRemoveFreeSpace(pipeline->pip_project_path_with_namespace);
+
   if (pipeline->pip_duration)
     pipeline->pip_duration = sdsRemoveFreeSpace(pipeline->pip_duration);
+
   if (pipeline->pip_id_s)
     pipeline->pip_id_s = sdsRemoveFreeSpace(pipeline->pip_id_s);
 }

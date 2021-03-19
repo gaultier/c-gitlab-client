@@ -88,7 +88,7 @@ static void table_add_or_update_pipeline(pipeline_t* pipeline) {
   for (int i = 0; i < (int)buf_size(table.tab_pipelines); i++) {
     if (table.tab_pipelines[i].pip_id == pipeline->pip_id) {
       pipeline_merge(&table.tab_pipelines[i], pipeline);
-      /* entity_release((entity_t*)&table.tab_pipelines[i]); */
+      entity_release((entity_t*)&table.tab_pipelines[i]);
       table.tab_pipelines[i] = *pipeline;
 
       /* free(pipeline); */
