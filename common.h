@@ -53,7 +53,7 @@ typedef uint64_t u64;
 typedef uint16_t u16;
 
 typedef struct {
-  i64 pip_id, pip_project_id, pip_duration_second;
+  i64 pip_id, pip_project_id;
   sds pip_vcs_ref, pip_url, pip_created_at, pip_updated_at, pip_started_at,
       pip_finished_at, pip_status, pip_project_path_with_namespace, pip_id_s;
   time_t pip_created_at_time, pip_updated_at_time, pip_started_at_time,

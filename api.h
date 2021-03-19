@@ -161,8 +161,6 @@ static void api_pipeline_parse_json(entity_t *entity, lstack_t *channel) {
                          pipeline->pip_started_at);
     JSON_PARSE_KV_STRING("finished_at", api_json_tokens, i, s,
                          pipeline->pip_finished_at);
-    JSON_PARSE_KV_NUMBER("duration", api_json_tokens, i, s,
-                         pipeline->pip_duration_second);
     JSON_PARSE_KV_STRING("status", api_json_tokens, i, s, pipeline->pip_status);
     JSON_PARSE_KV_STRING("web_url", api_json_tokens, i, s, pipeline->pip_url);
   }

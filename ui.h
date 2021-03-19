@@ -77,9 +77,6 @@ static void pipeline_merge(pipeline_t* before, pipeline_t* after) {
 
   if (before->pip_finished_at && sdslen(before->pip_finished_at))
     after->pip_finished_at = sdsdup(before->pip_finished_at);
-
-  if (before->pip_duration_second)
-    after->pip_duration_second = before->pip_duration_second;
 }
 
 static void table_add_or_update_pipeline(pipeline_t* pipeline) {
