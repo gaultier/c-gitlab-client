@@ -287,7 +287,7 @@ static void table_draw() {
   }
 }
 
-static void table_update_pipelines_with_projects_info() {
+static void ui_update_pipelines_with_projects_info() {
   for (u64 i = 0; i < buf_size(table.tab_pipelines); i++) {
     pipeline_t* pipeline = &table.tab_pipelines[i];
     for (u64 j = 0; j < buf_size(table.tab_projects); j++) {
@@ -310,7 +310,7 @@ static void ui_pull_entities(args_t* args) {
     } else
       assert(0 && "Unreachable");
   }
-  table_update_pipelines_with_projects_info();
+  ui_update_pipelines_with_projects_info();
   table_calc_size();
 }
 
