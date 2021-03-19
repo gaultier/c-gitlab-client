@@ -23,7 +23,7 @@ typedef struct {
 table_t table;
 
 static void table_init() {
-  table = (table_t){.tab_max_width_cols = {9, 9, 9, 9, 9, 9, 9, 9, 9},
+  table = (table_t){.tab_max_width_cols = {9, 9, 9, 9, 9, 9, 9, 9, 4},
                     .tab_h = tb_height() - 1};  // -1 for header
   buf_grow(table.tab_projects, 100);
   buf_grow(table.tab_pipelines, 100);
@@ -112,9 +112,6 @@ static void table_calc_size() {
     col++;
 
     col += 3;  // skip created_at, updated_at, duration
-
-    table.tab_max_width_cols[col] =
-        MAX(table.tab_max_width_cols[col], (int)sdslen(pipeline->pip_status));
   }
 }
 
@@ -268,20 +265,21 @@ static void table_draw() {
                     fg, bg);
     }
     {
-      char status[40] = "";
-      memcpy(status, pipeline->pip_status,
-             MIN(LEN0(status), sdslen(pipeline->pip_status)));
+      char* status = "⚫";
       if (sdslen(pipeline->pip_status) == LEN0("success") &&
           strcmp(pipeline->pip_status, "success") == 0) {
         fg = TB_GREEN;
+        status = "✔";
       } else if (sdslen(pipeline->pip_status) == LEN0("failed") &&
                  strcmp(pipeline->pip_status, "failed") == 0) {
         fg = TB_RED;
+        status = "✘";
       } else if (sdslen(pipeline->pip_status) == LEN0("canceled") &&
                  strcmp(pipeline->pip_status, "canceled") == 0) {
         fg = TB_MAGENTA;
+        status = "🚫";
       }
-      ui_string_draw(status, table.tab_max_width_cols[col++], &x, y, fg, bg);
+      ui_string_draw(status, strlen(status), &x, y, fg, bg);
       ui_blank_draw(ui_margin, &x, y, fg, bg);
     }
   }
