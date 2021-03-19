@@ -162,13 +162,18 @@ static void project_release(project_t *project) {
 
 static entity_t *entity_new(entity_kind_t kind) {
   entity_t *entity = calloc(1, sizeof(entity_t));
+  assert(entity);
+
   entity->ent_kind = kind;
   entity->ent_fetch_data = sdsempty();
   entity->ent_api_url = sdsempty();
+  fprintf(stderr, "U010 entity=%p\n", entity);
   return entity;
 }
 
 static void project_shrink(project_t *project) {
+  assert(project);
+
   if (project->pro_name)
     project->pro_name = sdsRemoveFreeSpace(project->pro_name);
 
@@ -178,6 +183,8 @@ static void project_shrink(project_t *project) {
 }
 
 static void pipeline_shrink(pipeline_t *pipeline) {
+  assert(pipeline);
+
   if (pipeline->pip_vcs_ref)
     pipeline->pip_vcs_ref = sdsRemoveFreeSpace(pipeline->pip_vcs_ref);
 
@@ -207,6 +214,13 @@ static void pipeline_shrink(pipeline_t *pipeline) {
 }
 
 static void entity_shrink(entity_t *entity) {
+  assert(entity);
+
+  fprintf(stderr,
+          "U001 | entity=%p ent_fetch_data=%p ent_fetch_data=%s ent_kind=%d "
+          "ent_api_url=%s\n",
+          entity, entity->ent_fetch_data, entity->ent_fetch_data,
+          entity->ent_kind, entity->ent_api_url);
   sdsfree(entity->ent_fetch_data);
   entity->ent_fetch_data = NULL;
 
@@ -220,7 +234,13 @@ static void entity_shrink(entity_t *entity) {
 }
 
 static void entity_release(entity_t *entity) {
+  assert(entity);
+
+  fprintf(stderr, "U002 | entity=%p ent_fetch_data=%p ent_kind=%d\n", entity,
+          entity->ent_fetch_data, entity->ent_kind);
   sdsfree(entity->ent_fetch_data);
+  fprintf(stderr, "U003 | entity=%p ent_fetch_data=%p ent_kind=%d\n", entity,
+          entity->ent_fetch_data, entity->ent_kind);
   entity->ent_fetch_data = NULL;
 
   sdsfree(entity->ent_api_url);

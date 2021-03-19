@@ -60,7 +60,8 @@ static void table_resize() {
 }
 
 static void pipeline_merge(pipeline_t* before, pipeline_t* after) {
-  if (sdslen(before->pip_project_path_with_namespace)) {
+  if (before->pip_project_path_with_namespace &&
+      sdslen(before->pip_project_path_with_namespace)) {
     after->pip_project_path_with_namespace =
         before->pip_project_path_with_namespace;
   }
@@ -68,16 +69,16 @@ static void pipeline_merge(pipeline_t* before, pipeline_t* after) {
   if (before->pip_started_at_time)
     after->pip_started_at_time = before->pip_started_at_time;
 
-  if (sdslen(before->pip_started_at))
+  if (before->pip_started_at && sdslen(before->pip_started_at))
     after->pip_started_at = sdsdup(before->pip_started_at);
 
   if (before->pip_finished_at_time)
     after->pip_finished_at_time = before->pip_finished_at_time;
 
-  if (sdslen(before->pip_finished_at))
+  if (before->pip_finished_at && sdslen(before->pip_finished_at))
     after->pip_finished_at = sdsdup(before->pip_finished_at);
 
-  if (sdslen(before->pip_duration))
+  if (before->pip_duration && sdslen(before->pip_duration))
     after->pip_duration = sdsdup(before->pip_duration);
 
   if (before->pip_duration_second)
@@ -88,8 +89,10 @@ static void table_add_or_update_pipeline(pipeline_t* pipeline) {
   for (int i = 0; i < (int)buf_size(table.tab_pipelines); i++) {
     if (table.tab_pipelines[i].pip_id == pipeline->pip_id) {
       pipeline_merge(&table.tab_pipelines[i], pipeline);
-      entity_release((entity_t*)&table.tab_pipelines[i]);
+      pipeline_release(&table.tab_pipelines[i]);
       table.tab_pipelines[i] = *pipeline;
+
+      free((entity_t*)pipeline);
       return;
     }
   }
