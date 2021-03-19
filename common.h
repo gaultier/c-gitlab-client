@@ -214,6 +214,8 @@ static void entity_release(entity_t *entity) {
     project_release(&entity->ent_e.ent_project);
   else if (entity->ent_kind == EK_PIPELINE)
     pipeline_release(&entity->ent_e.ent_pipeline);
+
+  free(entity);
 }
 
 static int common_duration_second_to_short(char *res, u64 res_size,
