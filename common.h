@@ -241,16 +241,30 @@ static int common_duration_second_to_short(char *res, u64 res_size,
 
   if (duration < MINUTE)
     return sprintf(res, "%llus", duration);
-  else if (duration < HOUR)
-    return sprintf(res, "%llum", duration / MINUTE);
-  else if (duration < DAY)
-    return sprintf(res, "%lluh", duration / HOUR);
-  else if (duration < MONTH)
-    return sprintf(res, "%llud", duration / DAY);
-  else if (duration < YEAR)
-    return sprintf(res, "%lluM", duration / MONTH);
-  else if (duration / YEAR < 100)
-    return sprintf(res, "%lluy", duration / YEAR);
-  else
+  else if (duration < HOUR) {
+    const int minute = duration / MINUTE;
+    const int second = duration - minute * MINUTE;
+    return second ? sprintf(res, "%dm%ds", minute, second)
+                  : sprintf(res, "%dm", minute);
+  } else if (duration < DAY) {
+    const int hour = duration / HOUR;
+    const int minute = (duration - hour * HOUR) / MINUTE;
+    return minute ? sprintf(res, "%dh%dm", hour, minute)
+                  : sprintf(res, "%dh", hour);
+  } else if (duration < MONTH) {
+    const int day = duration / DAY;
+    const int hour = (duration - day * DAY) / HOUR;
+    return hour ? sprintf(res, "%dd%dh", day, hour) : sprintf(res, "%dd", day);
+  } else if (duration < YEAR) {
+    const int month = duration / MONTH;
+    const int day = (duration - month * MONTH) / DAY;
+    return day ? sprintf(res, "%dM%dh", month, day)
+               : sprintf(res, "%dM", month);
+  } else if (duration / YEAR < 100) {
+    const int year = duration / YEAR;
+    const int month = (duration - year * YEAR) / MONTH;
+    return month ? sprintf(res, "%dy%dM", year, month)
+                 : sprintf(res, "%dy", year);
+  } else
     return sprintf(res, "?");
 }

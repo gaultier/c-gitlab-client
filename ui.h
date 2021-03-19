@@ -253,10 +253,10 @@ static void table_draw() {
       memset(duration, 0, sizeof(duration));
       u64 duration_second = 0;
       if (pipeline->pip_started_at_time) {
-        duration_second =
+        duration_second = difftime(
             (pipeline->pip_finished_at_time ? pipeline->pip_finished_at_time
-                                            : time(0)) -
-            pipeline->pip_started_at_time;
+                                            : time(0)),
+            pipeline->pip_started_at_time);
       }
       int len = 0;
       if (duration_second >= 0) {
