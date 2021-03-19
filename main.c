@@ -69,7 +69,7 @@ int main(int argc, char* argv[]) {
   ui_init();
 
   pthread_t fetch_thread;
-  pthread_create(&fetch_thread, NULL, fetch, &args);
+  pthread_create(&fetch_thread, NULL, api_fetch, &args);
 
   ui_run(&args);
 }
