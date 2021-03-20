@@ -23,7 +23,7 @@ typedef struct {
 table_t table;
 
 static void table_init() {
-  table = (table_t){.tab_max_width_cols = {9, 9, 9, 9, 9, 9, 9, 9, 4},
+  table = (table_t){.tab_max_width_cols = {9, 9, 9, 9, 9, 9, 9, 9, 1},
                     .tab_h = tb_height() - 1};  // -1 for header
   buf_grow(table.tab_projects, 100);
   buf_grow(table.tab_pipelines, 100);
@@ -121,6 +121,11 @@ static void ui_init() {
   tb_select_input_mode(TB_INPUT_ESC);
 }
 
+static void ui_utf8_character_draw(const char* s, int* x, int y, u16 fg,
+                                   u16 bg) {
+  tb_change_cell(*x, y, *(u32*)s, fg, bg);
+  *x += 1;
+}
 static void ui_string_draw(const char* s, int len, int* x, int y, u16 fg,
                            u16 bg) {
   for (int i = 0; i < len; i++) {
@@ -265,21 +270,20 @@ static void table_draw() {
                     fg, bg);
     }
     {
-      char* status = "⚫";
-      if (sdslen(pipeline->pip_status) == LEN0("success") &&
-          strcmp(pipeline->pip_status, "success") == 0) {
+      char statuses[][4] = {[ST_PENDING] = "⚫",
+                            [ST_FAILED] = "✘",
+                            [ST_RUNNING] = "🟢",
+                            [ST_CANCELED] = "🚫",
+                            [ST_SUCCEEDED] = "✔"};
+      char* status = statuses[pipeline->pip_status];
+      if (pipeline->pip_status == ST_SUCCEEDED)
         fg = TB_GREEN;
-        status = "✔";
-      } else if (sdslen(pipeline->pip_status) == LEN0("failed") &&
-                 strcmp(pipeline->pip_status, "failed") == 0) {
+      else if (pipeline->pip_status == ST_FAILED)
         fg = TB_RED;
-        status = "✘";
-      } else if (sdslen(pipeline->pip_status) == LEN0("canceled") &&
-                 strcmp(pipeline->pip_status, "canceled") == 0) {
+      else if (pipeline->pip_status == ST_CANCELED)
         fg = TB_MAGENTA;
-        status = "🚫";
-      }
-      ui_string_draw(status, strlen(status), &x, y, fg, bg);
+
+      /* ui_utf8_character_draw(status, &x, y, fg, bg); */
       ui_blank_draw(ui_margin, &x, y, fg, bg);
     }
   }

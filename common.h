@@ -25,6 +25,8 @@
 #define MAX(x, y) ((x) < (y) ? (y) : (x))
 #endif
 
+#define ARR_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
+
 #define CLAMP(value, min, max) \
   do {                         \
     if ((value) < (min))       \
@@ -51,13 +53,23 @@
 typedef int64_t i64;
 typedef uint64_t u64;
 typedef uint16_t u16;
+typedef uint32_t u32;
+
+typedef enum {
+  ST_PENDING,
+  ST_RUNNING,
+  ST_SUCCEEDED,
+  ST_FAILED,
+  ST_CANCELED
+} status_t;
 
 typedef struct {
   i64 pip_id, pip_project_id;
   sds pip_vcs_ref, pip_url, pip_created_at, pip_updated_at, pip_started_at,
-      pip_finished_at, pip_status, pip_project_path_with_namespace, pip_id_s;
+      pip_finished_at, pip_project_path_with_namespace, pip_id_s;
   time_t pip_created_at_time, pip_updated_at_time, pip_started_at_time,
       pip_finished_at_time;
+  status_t pip_status;
 } pipeline_t;
 
 typedef struct {
@@ -113,7 +125,6 @@ static void pipeline_init(pipeline_t *pipeline, i64 project_id) {
   pipeline->pip_updated_at = sdsempty();
   pipeline->pip_started_at = sdsempty();
   pipeline->pip_finished_at = sdsempty();
-  pipeline->pip_status = sdsempty();
   pipeline->pip_project_path_with_namespace = sdsempty();
   pipeline->pip_id_s = sdsempty();
 }
@@ -136,9 +147,6 @@ static void pipeline_release(pipeline_t *pipeline) {
 
   sdsfree(pipeline->pip_finished_at);
   pipeline->pip_finished_at = NULL;
-
-  sdsfree(pipeline->pip_status);
-  pipeline->pip_status = NULL;
 
   sdsfree(pipeline->pip_id_s);
   pipeline->pip_id_s = NULL;
@@ -190,9 +198,6 @@ static void pipeline_shrink(pipeline_t *pipeline) {
 
   if (pipeline->pip_finished_at)
     pipeline->pip_finished_at = sdsRemoveFreeSpace(pipeline->pip_finished_at);
-
-  if (pipeline->pip_status)
-    pipeline->pip_status = sdsRemoveFreeSpace(pipeline->pip_status);
 
   if (pipeline->pip_id_s)
     pipeline->pip_id_s = sdsRemoveFreeSpace(pipeline->pip_id_s);

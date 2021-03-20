@@ -2,6 +2,10 @@
 
 #include "common.h"
 
+static jsmntok_t *api_json_tokens;
+static char api_url[4097];
+static CURLM *api_cm = NULL;
+
 #define JSON_PARSE_KV_STRING(key, api_json_tokens, i, s, field) \
   do {                                                          \
     jsmntok_t *const tok = &api_json_tokens[i];                 \
@@ -26,10 +30,6 @@
     }                                                           \
   } while (0)
 
-static jsmntok_t *api_json_tokens;
-static char api_url[4097];
-static CURLM *api_cm = NULL;
-
 static void api_init() {
   curl_global_init(CURL_GLOBAL_ALL);
   api_cm = curl_multi_init();
@@ -49,6 +49,37 @@ static int api_json_eq(const char *json, const jsmntok_t *tok, const char *s,
     return 0;
   }
   return -1;
+}
+
+static void api_pipeline_json_status_parse(pipeline_t *pipeline, i64 *i,
+                                           const char *s) {
+  const char key[] = "status";
+  jsmntok_t *const tok = &api_json_tokens[*i];
+  if (api_json_eq(s, tok, key, LEN0(key)) == 0) {
+    *i += 1;
+    const jsmntok_t *const t = &api_json_tokens[*i];
+    const char *const value = s + t->start;
+    const int len = t->end - t->start;
+
+    static const struct status_mapping_t {
+      status_t status;
+      char *s;
+    } statuses[] = {
+        {.status = ST_PENDING, .s = "pending"},
+        {.status = ST_RUNNING, .s = "running"},
+        {.status = ST_FAILED, .s = "failed"},
+        {.status = ST_SUCCEEDED, .s = "succeeded"},
+        {.status = ST_CANCELED, .s = "canceled"},
+    };
+    for (int j = 0; j < (int)ARR_SIZE(statuses); j++) {
+      const struct status_mapping_t status = statuses[j];
+      if (LEN0(status.s) == len && memcmp(status.s, value, len) == 0) {
+        pipeline->pip_status = status.status;
+        fprintf(stderr, "status=%d\n", pipeline->pip_status);
+        return;
+      }
+    }
+  }
 }
 
 static void api_project_parse_json(entity_t *entity, lstack_t *channel) {
@@ -161,8 +192,8 @@ static void api_pipeline_parse_json(entity_t *entity, lstack_t *channel) {
                          pipeline->pip_started_at);
     JSON_PARSE_KV_STRING("finished_at", api_json_tokens, i, s,
                          pipeline->pip_finished_at);
-    JSON_PARSE_KV_STRING("status", api_json_tokens, i, s, pipeline->pip_status);
     JSON_PARSE_KV_STRING("web_url", api_json_tokens, i, s, pipeline->pip_url);
+    api_pipeline_json_status_parse(pipeline, &i, s);
   }
   // Post-processing
   entity->ent_kind = EK_PIPELINE;
@@ -238,8 +269,8 @@ static void api_pipelines_parse_json(entity_t *dummy_entity, args_t *args) {
                          pipeline->pip_created_at);
     JSON_PARSE_KV_STRING("updated_at", api_json_tokens, i, s,
                          pipeline->pip_updated_at);
-    JSON_PARSE_KV_STRING("status", api_json_tokens, i, s, pipeline->pip_status);
     JSON_PARSE_KV_STRING("web_url", api_json_tokens, i, s, pipeline->pip_url);
+    api_pipeline_json_status_parse(pipeline, &i, s);
   }
 
   if (e_pipeline) {
