@@ -6,30 +6,6 @@ static jsmntok_t *api_json_tokens;
 static char api_url[4097];
 static CURLM *api_cm = NULL;
 
-#define JSON_PARSE_KV_STRING(key, api_json_tokens, i, s, field) \
-  do {                                                          \
-    jsmntok_t *const tok = &api_json_tokens[i];                 \
-    if (api_json_eq(s, tok, key, LEN0(key)) == 0) {             \
-      const jsmntok_t *const t = &api_json_tokens[++i];         \
-      const char *const value = s + t->start;                   \
-      if (sdslen(field)) sdssetlen(field, 0);                   \
-      field = sdscatlen(field, value, t->end - t->start);       \
-      continue;                                                 \
-    }                                                           \
-  } while (0)
-
-#define JSON_PARSE_KV_NUMBER(key, api_json_tokens, i, s, field) \
-  do {                                                          \
-    jsmntok_t *const tok = &api_json_tokens[i];                 \
-    if (api_json_eq(s, tok, key, LEN0(key)) == 0) {             \
-      const jsmntok_t *const t = &api_json_tokens[++i];         \
-      if (t->type != JSMN_PRIMITIVE) break;                     \
-      const char *const value = s + t->start;                   \
-      field = strtoll(value, NULL, 10);                         \
-      continue;                                                 \
-    }                                                           \
-  } while (0)
-
 static void api_init() {
   curl_global_init(CURL_GLOBAL_ALL);
   api_cm = curl_multi_init();
@@ -51,7 +27,35 @@ static int api_json_eq(const char *json, const jsmntok_t *tok, const char *s,
   return -1;
 }
 
-static void api_pipeline_json_status_parse(pipeline_t *pipeline, i64 *i,
+bool api_json_parse_kv_string(const char *key, u64 key_len, i64 *i,
+                              const char *s, sds *field) {
+  jsmntok_t *const tok = &api_json_tokens[*i];
+  if (api_json_eq(s, tok, key, key_len) == 0) {
+    *i += 1;
+    const jsmntok_t *const t = &api_json_tokens[*i];
+    const char *const value = s + t->start;
+    if (sdslen(*field)) sdssetlen(*field, 0);
+    *field = sdscatlen(*field, value, t->end - t->start);
+    return true;
+  }
+  return false;
+}
+
+bool api_json_parse_kv_number(const char *key, u64 key_len, i64 *i,
+                              const char *s, i64 *field) {
+  jsmntok_t *const tok = &api_json_tokens[*i];
+  if (api_json_eq(s, tok, key, key_len) == 0) {
+    *i += 1;
+    const jsmntok_t *const t = &api_json_tokens[*i];
+    if (t->type != JSMN_PRIMITIVE) return false;
+    const char *const value = s + t->start;
+    *field = strtoll(value, NULL, 10);
+    return true;
+  }
+  return false;
+}
+
+static bool api_pipeline_json_status_parse(pipeline_t *pipeline, i64 *i,
                                            const char *s) {
   const char key[] = "status";
   jsmntok_t *const tok = &api_json_tokens[*i];
@@ -76,10 +80,11 @@ static void api_pipeline_json_status_parse(pipeline_t *pipeline, i64 *i,
       if (LEN0(status.s) == len && memcmp(status.s, value, len) == 0) {
         pipeline->pip_status = status.status;
         fprintf(stderr, "status=%d\n", pipeline->pip_status);
-        return;
+        return true;
       }
     }
   }
+  return false;
 }
 
 static void api_project_parse_json(entity_t *entity, lstack_t *channel) {
@@ -105,8 +110,10 @@ static void api_project_parse_json(entity_t *entity, lstack_t *channel) {
   }
 
   for (i64 i = 1; i < res; i++) {
-    JSON_PARSE_KV_STRING("path_with_namespace", api_json_tokens, i, s,
-                         project->pro_path_with_namespace);
+    if (api_json_parse_kv_string("path_with_namespace",
+                                 LEN0("path_with_namespace"), &i, s,
+                                 &project->pro_path_with_namespace))
+      continue;
   }
   entity->ent_kind = EK_PROJECT;
 
@@ -183,17 +190,25 @@ static void api_pipeline_parse_json(entity_t *entity, lstack_t *channel) {
       continue;
     }
 
-    JSON_PARSE_KV_STRING("ref", api_json_tokens, i, s, pipeline->pip_vcs_ref);
-    JSON_PARSE_KV_STRING("created_at", api_json_tokens, i, s,
-                         pipeline->pip_created_at);
-    JSON_PARSE_KV_STRING("updated_at", api_json_tokens, i, s,
-                         pipeline->pip_updated_at);
-    JSON_PARSE_KV_STRING("started_at", api_json_tokens, i, s,
-                         pipeline->pip_started_at);
-    JSON_PARSE_KV_STRING("finished_at", api_json_tokens, i, s,
-                         pipeline->pip_finished_at);
-    JSON_PARSE_KV_STRING("web_url", api_json_tokens, i, s, pipeline->pip_url);
-    api_pipeline_json_status_parse(pipeline, &i, s);
+    if (api_json_parse_kv_string("ref", LEN0("ref"), &i, s,
+                                 &pipeline->pip_vcs_ref))
+      continue;
+    if (api_json_parse_kv_string("created_at", LEN0("created_at"), &i, s,
+                                 &pipeline->pip_created_at))
+      continue;
+    if (api_json_parse_kv_string("updated_at", LEN0("updated_at"), &i, s,
+                                 &pipeline->pip_updated_at))
+      continue;
+    if (api_json_parse_kv_string("started_at", LEN0("started_at"), &i, s,
+                                 &pipeline->pip_started_at))
+      continue;
+    if (api_json_parse_kv_string("finished_at", LEN0("finished_at"), &i, s,
+                                 &pipeline->pip_finished_at))
+      continue;
+    if (api_json_parse_kv_string("web_url", LEN0("web_url"), &i, s,
+                                 &pipeline->pip_url))
+      continue;
+    if (api_pipeline_json_status_parse(pipeline, &i, s)) continue;
   }
   // Post-processing
   entity->ent_kind = EK_PIPELINE;
@@ -263,14 +278,21 @@ static void api_pipelines_parse_json(entity_t *dummy_entity, args_t *args) {
       continue;
     }
 
-    JSON_PARSE_KV_NUMBER("id", api_json_tokens, i, s, pipeline->pip_id);
-    JSON_PARSE_KV_STRING("ref", api_json_tokens, i, s, pipeline->pip_vcs_ref);
-    JSON_PARSE_KV_STRING("created_at", api_json_tokens, i, s,
-                         pipeline->pip_created_at);
-    JSON_PARSE_KV_STRING("updated_at", api_json_tokens, i, s,
-                         pipeline->pip_updated_at);
-    JSON_PARSE_KV_STRING("web_url", api_json_tokens, i, s, pipeline->pip_url);
-    api_pipeline_json_status_parse(pipeline, &i, s);
+    if (api_json_parse_kv_number("id", LEN0("id"), &i, s, &pipeline->pip_id))
+      continue;
+    if (api_json_parse_kv_string("ref", LEN0("ref"), &i, s,
+                                 &pipeline->pip_vcs_ref))
+      continue;
+    if (api_json_parse_kv_string("created_at", LEN0("created_at"), &i, s,
+                                 &pipeline->pip_created_at))
+      continue;
+    if (api_json_parse_kv_string("updated_at", LEN0("updated_at"), &i, s,
+                                 &pipeline->pip_updated_at))
+      continue;
+    if (api_json_parse_kv_string("web_url", LEN0("web_url"), &i, s,
+                                 &pipeline->pip_url))
+      continue;
+    if (api_pipeline_json_status_parse(pipeline, &i, s)) continue;
   }
 
   if (e_pipeline) {
