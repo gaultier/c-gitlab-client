@@ -270,7 +270,7 @@ static void table_draw() {
                     fg, bg);
     }
     {
-      char statuses[][4] = {[ST_PENDING] = "⚫",
+      char statuses[][5] = {[ST_PENDING] = "⚫",
                             [ST_FAILED] = "✘",
                             [ST_RUNNING] = "🟢",
                             [ST_CANCELED] = "🚫",
@@ -283,7 +283,8 @@ static void table_draw() {
       else if (pipeline->pip_status == ST_CANCELED)
         fg = TB_MAGENTA;
 
-      /* ui_utf8_character_draw(status, &x, y, fg, bg); */
+      fprintf(stderr, "C300 | status=%d ch=%s\n", pipeline->pip_status, status);
+      ui_utf8_character_draw(status, &x, y, fg, bg);
       ui_blank_draw(ui_margin, &x, y, fg, bg);
     }
   }

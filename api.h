@@ -72,13 +72,16 @@ static bool api_pipeline_json_status_parse(pipeline_t *pipeline, i64 *i,
         {.status = ST_PENDING, .s = "pending"},
         {.status = ST_RUNNING, .s = "running"},
         {.status = ST_FAILED, .s = "failed"},
-        {.status = ST_SUCCEEDED, .s = "succeeded"},
+        {.status = ST_SUCCEEDED, .s = "success"},
         {.status = ST_CANCELED, .s = "canceled"},
     };
+    fprintf(stderr, "P300 | value=%.*s\n", len, value);
     for (int j = 0; j < (int)ARR_SIZE(statuses); j++) {
       const struct status_mapping_t status = statuses[j];
       if (LEN0(status.s) == len && memcmp(status.s, value, len) == 0) {
         pipeline->pip_status = status.status;
+        fprintf(stderr, "P301 | value=%.*s status=%d\n", len, value,
+                status.status);
         return true;
       }
     }
