@@ -79,7 +79,6 @@ static bool api_pipeline_json_status_parse(pipeline_t *pipeline, i64 *i,
       const struct status_mapping_t status = statuses[j];
       if (LEN0(status.s) == len && memcmp(status.s, value, len) == 0) {
         pipeline->pip_status = status.status;
-        fprintf(stderr, "status=%d\n", pipeline->pip_status);
         return true;
       }
     }
