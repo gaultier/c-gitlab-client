@@ -68,19 +68,20 @@ static bool api_pipeline_json_status_parse(pipeline_t *pipeline, i64 *i,
     static const struct status_mapping_t {
       status_t status;
       char *s;
+      int len;
     } statuses[] = {
-        {.status = ST_PENDING, .s = "pending"},
-        {.status = ST_RUNNING, .s = "running"},
-        {.status = ST_FAILED, .s = "failed"},
-        {.status = ST_SUCCEEDED, .s = "success"},
-        {.status = ST_CANCELED, .s = "canceled"},
+        {.status = ST_PENDING, .s = "pending", .len = LEN0("pending")},
+        {.status = ST_RUNNING, .s = "running", .len = LEN0("running")},
+        {.status = ST_FAILED, .s = "failed", .len = LEN0("failed")},
+        {.status = ST_SUCCEEDED, .s = "success", .len = LEN0("success")},
+        {.status = ST_CANCELED, .s = "canceled", .len = LEN0("canceled")},
     };
     fprintf(stderr, "P300 | value=%.*s\n", len, value);
     for (int j = 0; j < (int)ARR_SIZE(statuses); j++) {
       const struct status_mapping_t status = statuses[j];
-      if (LEN0(status.s) == len && memcmp(status.s, value, len) == 0) {
+      if (status.len == len && memcmp(status.s, value, len) == 0) {
         pipeline->pip_status = status.status;
-        fprintf(stderr, "P301 | value=%.*s status=%d\n", len, value,
+        fprintf(stderr, "P302 | value=%.*s status=%d\n", len, value,
                 status.status);
         return true;
       }

@@ -25,7 +25,7 @@
 #define MAX(x, y) ((x) < (y) ? (y) : (x))
 #endif
 
-#define ARR_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
+#define ARR_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
 #define CLAMP(value, min, max) \
   do {                         \

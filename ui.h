@@ -121,9 +121,8 @@ static void ui_init() {
   tb_select_input_mode(TB_INPUT_ESC);
 }
 
-static void ui_utf8_character_draw(const char* s, int* x, int y, u16 fg,
-                                   u16 bg) {
-  tb_change_cell(*x, y, *(u32*)s, fg, bg);
+static void ui_utf8_character_draw(u32 ch, int* x, int y, u16 fg, u16 bg) {
+  tb_change_cell(*x, y, ch, fg, bg);
   *x += 1;
 }
 static void ui_string_draw(const char* s, int len, int* x, int y, u16 fg,
@@ -270,12 +269,14 @@ static void table_draw() {
                     fg, bg);
     }
     {
-      char statuses[][5] = {[ST_PENDING] = "⚫",
-                            [ST_FAILED] = "✘",
-                            [ST_RUNNING] = "🟢",
-                            [ST_CANCELED] = "🚫",
-                            [ST_SUCCEEDED] = "✔"};
-      char* status = statuses[pipeline->pip_status];
+      static const u32 statuses[] = {
+          [ST_PENDING] = 0x26AA,    // ⚫
+          [ST_FAILED] = 0x2716,     // ✘
+          [ST_RUNNING] = 0x1F7E2,   // 🟢
+          [ST_CANCELED] = 0x1F6AB,  // 🚫
+          [ST_SUCCEEDED] = 0x2714,  // ✔
+      };
+      u32 status = statuses[pipeline->pip_status];
       if (pipeline->pip_status == ST_SUCCEEDED)
         fg = TB_GREEN;
       else if (pipeline->pip_status == ST_FAILED)
@@ -283,7 +284,6 @@ static void table_draw() {
       else if (pipeline->pip_status == ST_CANCELED)
         fg = TB_MAGENTA;
 
-      fprintf(stderr, "C300 | status=%d ch=%s\n", pipeline->pip_status, status);
       ui_utf8_character_draw(status, &x, y, fg, bg);
       ui_blank_draw(ui_margin, &x, y, fg, bg);
     }
