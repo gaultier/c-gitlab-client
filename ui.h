@@ -272,7 +272,7 @@ static void table_draw() {
       static const u32 statuses[] = {
           [ST_PENDING] = 0x26AA,    // ⚫
           [ST_FAILED] = 0x2716,     // ✘
-          [ST_RUNNING] = 0x1F7E2,   // 🟢
+          [ST_RUNNING] = 0x25D5,    // ◕
           [ST_CANCELED] = 0x1F6AB,  // 🚫
           [ST_SUCCEEDED] = 0x2714,  // ✔
       };
