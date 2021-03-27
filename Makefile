@@ -1,6 +1,6 @@
 .PHONY: deps clean
 
-LDFLAGS = deps/curl/lib/.libs/libcurl.a deps/mbedtls/lib/libmbedcrypto.a deps/mbedtls/lib/libmbedx509.a deps/mbedtls/lib/libmbedtls.a
+LDFLAGS = deps/curl/lib/.libs/libcurl.a deps/mbedtls/lib/libmbedcrypto.a deps/mbedtls/lib/libmbedx509.a deps/mbedtls/lib/libmbedtls.a -lpthread
 
 CFLAGS += -fPIE
 
