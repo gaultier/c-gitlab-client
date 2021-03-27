@@ -429,6 +429,9 @@ static void *api_fetch(void *v_args) {
   }
 
   for (;;) {
+    struct timespec start = {0};
+    CHECK(clock_gettime(CLOCK_MONOTONIC, &start), ==, 0, "%d");
+
     for (u64 i = 0; i < buf_size(args->arg_project_ids); i++) {
       entity_t *entity = entity_new(EK_FETCH_PIPELINES);
       pipeline_t *pipeline = &entity->ent_e.ent_pipeline;
@@ -437,7 +440,11 @@ static void *api_fetch(void *v_args) {
     }
 
     api_do_fetch(api_cm);
-    sleep(5);
+
+    struct timespec end = {0};
+    CHECK(clock_gettime(CLOCK_MONOTONIC, &end), ==, 0, "%d");
+    const u64 diff_seconds = end.tv_sec - start.tv_sec;
+    if (diff_seconds < 5) sleep(5 - diff_seconds);
   }
   return NULL;
 }
