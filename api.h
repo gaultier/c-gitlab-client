@@ -75,6 +75,14 @@ static bool api_pipeline_json_status_parse(pipeline_t *pipeline, i64 *i,
         {.status = ST_FAILED, .s = "failed", .len = LEN0("failed")},
         {.status = ST_SUCCEEDED, .s = "success", .len = LEN0("success")},
         {.status = ST_CANCELED, .s = "canceled", .len = LEN0("canceled")},
+        {.status = ST_CREATED, .s = "created", .len = LEN0("created")},
+        {.status = ST_MANUAL, .s = "manual", .len = LEN0("manual")},
+        {.status = ST_PREPARING, .s = "preparing", .len = LEN0("preparing")},
+        {.status = ST_SCHEDULED, .s = "scheduled", .len = LEN0("scheduled")},
+        {.status = ST_SKIPPED, .s = "skipped", .len = LEN0("skipped")},
+        {.status = ST_WAITING_FOR_RESOURCE,
+         .s = "waiting_for_resource",
+         .len = LEN0("waiting_for_resource")},
     };
     fprintf(stderr, "P300 | value=%.*s\n", len, value);
     for (int j = 0; j < (int)ARR_SIZE(statuses); j++) {

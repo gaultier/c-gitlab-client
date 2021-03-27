@@ -201,7 +201,7 @@ static void table_draw() {
 
     CHECK(p, >=, 0, "%d");
     if (p >= (int)buf_size(table.tab_pipelines)) return;  // Finished
-    const pipeline_t* const pipeline = &table.tab_pipelines[p];
+    pipeline_t* const pipeline = &table.tab_pipelines[p];
 
     int fg = TB_BLUE, bg = TB_DEFAULT;
     if (table.tab_selected == p) {
@@ -270,12 +270,19 @@ static void table_draw() {
     }
     {
       static const u32 statuses[] = {
-          [ST_PENDING] = 0x26AA,    // ⚫
-          [ST_FAILED] = 0x2716,     // ✘
-          [ST_RUNNING] = 0x25D5,    // ◕
-          [ST_CANCELED] = 0x1F6AB,  // 🚫
-          [ST_SUCCEEDED] = 0x2714,  // ✔
+          [ST_PENDING] = 0x26AA,                // ⚫
+          [ST_FAILED] = 0x2716,                 // ✘
+          [ST_RUNNING] = 0x25D5,                // ◕
+          [ST_CANCELED] = 0x1F6AB,              // 🚫
+          [ST_SUCCEEDED] = 0x2714,              // ✔
+          [ST_MANUAL] = 0x1F5B1,                // 🖱️
+          [ST_SCHEDULED] = 0x23F2,              // ⏲️
+          [ST_PREPARING] = 0x23F3,              // ⏳
+          [ST_SKIPPED] = 0x23ED,                // ⏭️
+          [ST_WAITING_FOR_RESOURCE] = 0x1F6A6,  // 🚦
+          [ST_COUNT] = 0x2753,                  // ❓
       };
+      if (pipeline->pip_status > ST_COUNT) pipeline->pip_status = ST_COUNT;
       u32 status = statuses[pipeline->pip_status];
       if (pipeline->pip_status == ST_SUCCEEDED)
         fg = TB_GREEN;

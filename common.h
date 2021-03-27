@@ -60,7 +60,14 @@ typedef enum {
   ST_RUNNING,
   ST_SUCCEEDED,
   ST_FAILED,
-  ST_CANCELED
+  ST_CANCELED,
+  ST_CREATED,
+  ST_MANUAL,
+  ST_PREPARING,
+  ST_SCHEDULED,
+  ST_SKIPPED,
+  ST_WAITING_FOR_RESOURCE,
+  ST_COUNT,
 } status_t;
 
 typedef struct {
