@@ -128,7 +128,7 @@ static void api_pipeline_queue_fetch(CURLM *cm, u64 project_id, u64 pipeline_id,
                                      args_t *args) {
   memset(api_url, 0, sizeof(api_url));
 
-  if (args->arg_gitlab_token)
+  if (args->arg_gitlab_token && sdslen(args->arg_gitlab_token))
     snprintf(api_url, LEN0(api_url),
              "%s/api/v4/projects/%llu/pipelines/%llu?private_token=%s",
              args->arg_base_url, project_id, pipeline_id,
@@ -320,7 +320,7 @@ static void api_pipelines_parse_json(entity_t *dummy_entity, args_t *args) {
 static void api_project_queue_fetch(CURLM *cm, entity_t *entity, args_t *args) {
   memset(api_url, 0, sizeof(api_url));
 
-  if (args->arg_gitlab_token)
+  if (args->arg_gitlab_token && sdslen(args->arg_gitlab_token))
     snprintf(api_url, LEN0(api_url),
              "%s/api/v4/projects/%llu?simple=true&private_token=%s",
              args->arg_base_url, entity->ent_e.ent_project.pro_id,
@@ -343,7 +343,7 @@ static void api_pipelines_queue_fetch(CURLM *cm, entity_t *entity,
   assert(entity->ent_kind == EK_FETCH_PIPELINES);
   memset(api_url, 0, sizeof(api_url));
 
-  if (args->arg_gitlab_token)
+  if (args->arg_gitlab_token && sdslen(args->arg_gitlab_token))
     snprintf(api_url, LEN0(api_url),
              "%s/api/v4/projects/%llu/"
              "pipelines?private_token=%s&order_by=updated_at",
