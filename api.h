@@ -380,8 +380,8 @@ static void api_do_fetch(CURLM *cm) {
         i64 http_code = 0;
         curl_easy_getinfo(msg->easy_handle, CURLINFO_RESPONSE_CODE, &http_code);
         if (http_code != 200) {
-          fprintf(stderr, "%s:%d:%lld url=%s data=%s ent_kind=%d\n", __FILE__,
-                  __LINE__, http_code, entity->ent_api_url,
+          fprintf(stderr, "%s:%d: http_code=%lld url=%s data=%s ent_kind=%d\n",
+                  __FILE__, __LINE__, http_code, entity->ent_api_url,
                   entity->ent_fetch_data, entity->ent_kind);
         }
 
