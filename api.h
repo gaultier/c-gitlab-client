@@ -84,7 +84,8 @@ static bool api_pipeline_json_status_parse(pipeline_t *pipeline, i64 *i,
          .s = "waiting_for_resource",
          .len = LEN0("waiting_for_resource")},
     };
-    fprintf(stderr, "P300 | value=%.*s\n", len, value);
+    fprintf(stderr, "P300 | pip_id=%lld value=%.*s\n", pipeline->pip_id, len,
+            value);
     for (int j = 0; j < (int)ARR_SIZE(statuses); j++) {
       const struct status_mapping_t status = statuses[j];
       if (status.len == len && memcmp(status.s, value, len) == 0) {
