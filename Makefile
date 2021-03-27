@@ -2,11 +2,11 @@
 
 LDFLAGS = deps/curl/lib/.libs/libcurl.a deps/mbedtls/lib/libmbedcrypto.a deps/mbedtls/lib/libmbedx509.a deps/mbedtls/lib/libmbedtls.a -lpthread
 
-CFLAGS += -fPIE
+CFLAGS += -fPIC
 
 HEADERS := $(wildcard *.h)
 gitlab_client: main.c $(HEADERS)
-	$(CC) $(CFLAGS) $(LDFLAGS) -Wall -Wextra -Wvla -Wpedantic -fno-omit-frame-pointer -g -flto -march=native -D_XOPEN_SOURCE $< -o $@ -O2 # -fsanitize=address
+	$(CC) $(CFLAGS) $(LDFLAGS) -Wall -Wextra -Wvla -Wpedantic -fno-omit-frame-pointer -g -flto -march=native -D_XOPEN_SOURCE -fPIE $< -o $@ -O2 # -fsanitize=address
 
 deps: 
 	(cd deps/mbedtls && LDFLAGS='' make -j && ln -s library lib || true)
