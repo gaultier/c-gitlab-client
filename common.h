@@ -1,6 +1,5 @@
 #pragma once
 
-#include <curl/curl.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -10,6 +9,7 @@
 #include <unistd.h>
 
 #include "deps/buf/buf.h"
+#include "deps/curl/include/curl/curl.h"
 #include "deps/jsmn/jsmn.h"
 #include "deps/lstack/lstack.c"
 #include "deps/lstack/lstack.h"
