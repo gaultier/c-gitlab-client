@@ -1,14 +1,19 @@
 #pragma once
 
 #include "common.h"
+#include "deps/sds/sds.h"
 
-static jsmntok_t *api_json_tokens;
-static char api_url[4097];
-static CURLM *api_cm = NULL;
+typedef struct api_client_t {
+  CURLM *ac_curlm;
+  jsmntok_t *ac_json_tokens;
+} api_client_t;
+
+static api_client_t api_client = {0};
 
 static void api_init() {
   curl_global_init(CURL_GLOBAL_ALL);
-  api_cm = curl_multi_init();
+
+  api_client = (api_client_t){.ac_curlm = curl_multi_init()};
 }
 
 static size_t api_curl_write_cb(char *data, size_t n, size_t l, void *userp) {
@@ -29,10 +34,10 @@ static int api_json_eq(const char *json, const jsmntok_t *tok, const char *s,
 
 bool api_json_parse_kv_string(const char *key, u64 key_len, i64 *i,
                               const char *s, sds *field) {
-  jsmntok_t *const tok = &api_json_tokens[*i];
+  jsmntok_t *const tok = &api_client.ac_json_tokens[*i];
   if (api_json_eq(s, tok, key, key_len) == 0) {
     *i += 1;
-    const jsmntok_t *const t = &api_json_tokens[*i];
+    const jsmntok_t *const t = &api_client.ac_json_tokens[*i];
     const char *const value = s + t->start;
     if (sdslen(*field)) sdssetlen(*field, 0);
     *field = sdscatlen(*field, value, t->end - t->start);
@@ -43,10 +48,10 @@ bool api_json_parse_kv_string(const char *key, u64 key_len, i64 *i,
 
 bool api_json_parse_kv_number(const char *key, u64 key_len, i64 *i,
                               const char *s, i64 *field) {
-  jsmntok_t *const tok = &api_json_tokens[*i];
+  jsmntok_t *const tok = &api_client.ac_json_tokens[*i];
   if (api_json_eq(s, tok, key, key_len) == 0) {
     *i += 1;
-    const jsmntok_t *const t = &api_json_tokens[*i];
+    const jsmntok_t *const t = &api_client.ac_json_tokens[*i];
     if (t->type != JSMN_PRIMITIVE) return false;
     const char *const value = s + t->start;
     *field = strtoll(value, NULL, 10);
@@ -58,10 +63,10 @@ bool api_json_parse_kv_number(const char *key, u64 key_len, i64 *i,
 static bool api_pipeline_json_status_parse(pipeline_t *pipeline, i64 *i,
                                            const char *s) {
   const char key[] = "status";
-  jsmntok_t *const tok = &api_json_tokens[*i];
+  jsmntok_t *const tok = &api_client.ac_json_tokens[*i];
   if (api_json_eq(s, tok, key, LEN0(key)) == 0) {
     *i += 1;
-    const jsmntok_t *const t = &api_json_tokens[*i];
+    const jsmntok_t *const t = &api_client.ac_json_tokens[*i];
     const char *const value = s + t->start;
     const int len = t->end - t->start;
 
@@ -101,8 +106,8 @@ static bool api_pipeline_json_status_parse(pipeline_t *pipeline, i64 *i,
 
 static void api_project_parse_json(entity_t *entity, lstack_t *channel) {
   assert(entity->ent_kind == EK_FETCH_PROJECT);
-  buf_trunc(api_json_tokens, 10 * 1024);  // 10 KiB
-  buf_clear(api_json_tokens);
+  buf_trunc(api_client.ac_json_tokens, 10 * 1024);  // 10 KiB
+  buf_clear(api_client.ac_json_tokens);
 
   jsmn_parser parser;
   jsmn_init(&parser);
@@ -110,9 +115,9 @@ static void api_project_parse_json(entity_t *entity, lstack_t *channel) {
   project_t *project = &entity->ent_e.ent_project;
 
   const char *const s = entity->ent_fetch_data;
-  int res = jsmn_parse(&parser, s, sdslen((char *)s), api_json_tokens,
-                       buf_capacity(api_json_tokens));
-  if (res <= 0 || api_json_tokens[0].type != JSMN_OBJECT) {
+  int res = jsmn_parse(&parser, s, sdslen((char *)s), api_client.ac_json_tokens,
+                       buf_capacity(api_client.ac_json_tokens));
+  if (res <= 0 || api_client.ac_json_tokens[0].type != JSMN_OBJECT) {
     fprintf(stderr,
             "%s:%d:Malformed JSON for project: url=%s "
             "json=%s\n",
@@ -133,21 +138,21 @@ static void api_project_parse_json(entity_t *entity, lstack_t *channel) {
   lstack_push(channel, entity);
 }
 
-static void api_pipeline_queue_fetch(CURLM *cm, u64 project_id, u64 pipeline_id,
+static void api_pipeline_queue_fetch(u64 project_id, u64 pipeline_id,
                                      args_t *args) {
-  memset(api_url, 0, sizeof(api_url));
+  entity_t *entity = entity_new(EK_FETCH_PIPELINE);
+  entity->ent_api_url = sdsempty();
 
   if (args->arg_gitlab_token && sdslen(args->arg_gitlab_token))
-    snprintf(api_url, LEN0(api_url),
-             "%s/api/v4/projects/%llu/pipelines/%llu?private_token=%s",
-             args->arg_base_url, project_id, pipeline_id,
-             args->arg_gitlab_token);
+    entity->ent_api_url = sdscatfmt(
+        entity->ent_api_url,
+        "%s/api/v4/projects/%llu/pipelines/%llu?private_token=%s",
+        args->arg_base_url, project_id, pipeline_id, args->arg_gitlab_token);
   else
-    snprintf(api_url, LEN0(api_url), "%s/api/v4/projects/%llu/pipelines/%llu",
-             args->arg_base_url, project_id, pipeline_id);
+    entity->ent_api_url =
+        sdscatfmt(entity->ent_api_url, "%s/api/v4/projects/%llu/pipelines/%llu",
+                  args->arg_base_url, project_id, pipeline_id);
 
-  entity_t *entity = entity_new(EK_FETCH_PIPELINE);
-  entity->ent_api_url = sdsnew(api_url);
   CURL *eh = curl_easy_init();
   curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, api_curl_write_cb);
   curl_easy_setopt(eh, CURLOPT_URL, entity->ent_api_url);
@@ -157,21 +162,21 @@ static void api_pipeline_queue_fetch(CURLM *cm, u64 project_id, u64 pipeline_id,
 
   curl_easy_setopt(eh, CURLOPT_WRITEDATA, entity);
   curl_easy_setopt(eh, CURLOPT_PRIVATE, entity);
-  curl_multi_add_handle(cm, eh);
+  curl_multi_add_handle(api_client.ac_curlm, eh);
 }
 
 static void api_pipeline_parse_json(entity_t *entity, lstack_t *channel) {
   assert(entity->ent_kind == EK_FETCH_PIPELINE);
-  buf_trunc(api_json_tokens, 10 * 1024);  // 10 KiB
-  buf_clear(api_json_tokens);
+  buf_trunc(api_client.ac_json_tokens, 10 * 1024);  // 10 KiB
+  buf_clear(api_client.ac_json_tokens);
 
   jsmn_parser parser;
   jsmn_init(&parser);
 
   const char *const s = entity->ent_fetch_data;
-  int res = jsmn_parse(&parser, s, sdslen((char *)s), api_json_tokens,
-                       buf_capacity(api_json_tokens));
-  if (res <= 0 || api_json_tokens[0].type != JSMN_OBJECT) {
+  int res = jsmn_parse(&parser, s, sdslen((char *)s), api_client.ac_json_tokens,
+                       buf_capacity(api_client.ac_json_tokens));
+  if (res <= 0 || api_client.ac_json_tokens[0].type != JSMN_OBJECT) {
     fprintf(stderr,
             "%s:%d:Malformed JSON for pipeline: url=%s "
             "json=%s\n",
@@ -182,22 +187,22 @@ static void api_pipeline_parse_json(entity_t *entity, lstack_t *channel) {
 
   pipeline_t *pipeline = &entity->ent_e.ent_pipeline;
   for (i64 i = 1; i < res; i++) {
-    const jsmntok_t *key = &api_json_tokens[i];
+    const jsmntok_t *key = &api_client.ac_json_tokens[i];
     const int key_len = key->end - key->start;
     const char *const key_s = &s[key->start];
     // Skip 'user' object for now
     if (key->type == JSMN_STRING && key_len == LEN0("user") &&
         memcmp("user", key_s, key_len) == 0 &&
-        api_json_tokens[i + 1].type == JSMN_OBJECT) {
-      const jsmntok_t *const val = &api_json_tokens[i + 1];
+        api_client.ac_json_tokens[i + 1].type == JSMN_OBJECT) {
+      const jsmntok_t *const val = &api_client.ac_json_tokens[i + 1];
       i += 1 + 2 * val->size;
       continue;
     }
     // Skip 'detailed_status' for now
-    if (api_json_eq(s, &api_json_tokens[i], "detailed_status",
+    if (api_json_eq(s, &api_client.ac_json_tokens[i], "detailed_status",
                     LEN0("detailed_status") == 0) &&
-        api_json_tokens[i + 1].type == JSMN_OBJECT) {
-      const jsmntok_t *const val = &api_json_tokens[i + 1];
+        api_client.ac_json_tokens[i + 1].type == JSMN_OBJECT) {
+      const jsmntok_t *const val = &api_client.ac_json_tokens[i + 1];
       i += 1 + 2 * val->size;
       continue;
     }
@@ -249,16 +254,16 @@ static void api_pipeline_parse_json(entity_t *entity, lstack_t *channel) {
 
 static void api_pipelines_parse_json(entity_t *dummy_entity, args_t *args) {
   assert(dummy_entity->ent_kind == EK_FETCH_PIPELINES);
-  buf_trunc(api_json_tokens, 10 * 1024);  // 10 KiB
-  buf_clear(api_json_tokens);
+  buf_trunc(api_client.ac_json_tokens, 10 * 1024);  // 10 KiB
+  buf_clear(api_client.ac_json_tokens);
 
   jsmn_parser parser;
   jsmn_init(&parser);
 
   const char *const s = dummy_entity->ent_fetch_data;
-  int res = jsmn_parse(&parser, s, sdslen((char *)s), api_json_tokens,
-                       buf_capacity(api_json_tokens));
-  if (res <= 0 || api_json_tokens[0].type != JSMN_ARRAY) {
+  int res = jsmn_parse(&parser, s, sdslen((char *)s), api_client.ac_json_tokens,
+                       buf_capacity(api_client.ac_json_tokens));
+  if (res <= 0 || api_client.ac_json_tokens[0].type != JSMN_ARRAY) {
     entity_release(dummy_entity);
     return;
   }
@@ -266,11 +271,10 @@ static void api_pipelines_parse_json(entity_t *dummy_entity, args_t *args) {
   entity_t *e_pipeline = NULL;
   pipeline_t *pipeline = NULL;
   for (i64 i = 1; i < res; i++) {
-    const jsmntok_t *const tok = &api_json_tokens[i];
+    const jsmntok_t *const tok = &api_client.ac_json_tokens[i];
     if (tok->type == JSMN_OBJECT) {
       if (e_pipeline) {
-        api_pipeline_queue_fetch(api_cm,
-                                 e_pipeline->ent_e.ent_pipeline.pip_project_id,
+        api_pipeline_queue_fetch(e_pipeline->ent_e.ent_pipeline.pip_project_id,
                                  e_pipeline->ent_e.ent_pipeline.pip_id, args);
         // Post-processing
         CHECK(e_pipeline->ent_kind, ==, EK_PIPELINE, "%d");
@@ -308,8 +312,7 @@ static void api_pipelines_parse_json(entity_t *dummy_entity, args_t *args) {
   }
 
   if (e_pipeline) {
-    api_pipeline_queue_fetch(api_cm,
-                             e_pipeline->ent_e.ent_pipeline.pip_project_id,
+    api_pipeline_queue_fetch(e_pipeline->ent_e.ent_pipeline.pip_project_id,
                              e_pipeline->ent_e.ent_pipeline.pip_id, args);
     // Post-processing
     CHECK(e_pipeline->ent_kind, ==, EK_PIPELINE, "%d");
@@ -326,60 +329,60 @@ static void api_pipelines_parse_json(entity_t *dummy_entity, args_t *args) {
   entity_release(dummy_entity);
 }
 
-static void api_project_queue_fetch(CURLM *cm, entity_t *entity, args_t *args) {
-  memset(api_url, 0, sizeof(api_url));
-
+static void api_project_queue_fetch(entity_t *entity, args_t *args) {
+  entity->ent_api_url = sdsempty();
   if (args->arg_gitlab_token && sdslen(args->arg_gitlab_token))
-    snprintf(api_url, LEN0(api_url),
-             "%s/api/v4/projects/%llu?simple=true&private_token=%s",
-             args->arg_base_url, entity->ent_e.ent_project.pro_id,
-             args->arg_gitlab_token);
+    entity->ent_api_url =
+        sdscatfmt(entity->ent_api_url,
+                  "%s/api/v4/projects/%d?simple=true&private_token=%s",
+                  args->arg_base_url, entity->ent_e.ent_project.pro_id,
+                  args->arg_gitlab_token);
   else
-    snprintf(api_url, LEN0(api_url), "%s/api/v4/projects/%llu?simple=true",
-             args->arg_base_url, entity->ent_e.ent_project.pro_id);
+    entity->ent_api_url =
+        sdscatfmt(entity->ent_api_url, "%s/api/v4/projects/%d?simple=true",
+                  args->arg_base_url, entity->ent_e.ent_project.pro_id);
 
-  entity->ent_api_url = sdsnew(api_url);
   CURL *eh = curl_easy_init();
   curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, api_curl_write_cb);
   curl_easy_setopt(eh, CURLOPT_WRITEDATA, entity);
   curl_easy_setopt(eh, CURLOPT_URL, entity->ent_api_url);
   curl_easy_setopt(eh, CURLOPT_PRIVATE, entity);
-  curl_multi_add_handle(cm, eh);
+  curl_multi_add_handle(api_client.ac_curlm, eh);
 }
 
-static void api_pipelines_queue_fetch(CURLM *cm, entity_t *entity,
-                                      args_t *args) {
+static void api_pipelines_queue_fetch(entity_t *entity, args_t *args) {
   assert(entity->ent_kind == EK_FETCH_PIPELINES);
-  memset(api_url, 0, sizeof(api_url));
+  entity->ent_api_url = sdsempty();
 
   if (args->arg_gitlab_token && sdslen(args->arg_gitlab_token))
-    snprintf(api_url, LEN0(api_url),
-             "%s/api/v4/projects/%llu/"
-             "pipelines?private_token=%s&order_by=updated_at",
-             args->arg_base_url, entity->ent_e.ent_pipeline.pip_project_id,
-             args->arg_gitlab_token);
+    entity->ent_api_url =
+        sdscatfmt(entity->ent_api_url,
+                  "%s/api/v4/projects/%d/"
+                  "pipelines?private_token=%s&order_by=updated_at",
+                  args->arg_base_url, entity->ent_e.ent_pipeline.pip_project_id,
+                  args->arg_gitlab_token);
   else
-    snprintf(api_url, LEN0(api_url),
-             "%s/api/v4/projects/%llu/pipelines?order_by=updated_at",
-             args->arg_base_url, entity->ent_e.ent_pipeline.pip_project_id);
+    entity->ent_api_url = sdscatfmt(
+        entity->ent_api_url,
+        "%s/api/v4/projects/%d/pipelines?order_by=updated_at",
+        args->arg_base_url, entity->ent_e.ent_pipeline.pip_project_id);
 
-  entity->ent_api_url = sdsnew(api_url);
   CURL *eh = curl_easy_init();
   curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, api_curl_write_cb);
   curl_easy_setopt(eh, CURLOPT_URL, entity->ent_api_url);
   curl_easy_setopt(eh, CURLOPT_WRITEDATA, entity);
   curl_easy_setopt(eh, CURLOPT_PRIVATE, entity);
-  curl_multi_add_handle(cm, eh);
+  curl_multi_add_handle(api_client.ac_curlm, eh);
 }
 
-static void api_do_fetch(CURLM *cm) {
+static void api_do_fetch() {
   int still_alive = 1;
   int msgs_left = -1;
   do {
-    curl_multi_perform(cm, &still_alive);
+    curl_multi_perform(api_client.ac_curlm, &still_alive);
 
     CURLMsg *msg;
-    while ((msg = curl_multi_info_read(cm, &msgs_left))) {
+    while ((msg = curl_multi_info_read(api_client.ac_curlm, &msgs_left))) {
       CURL *e = msg->easy_handle;
 
       entity_t *entity = NULL;
@@ -403,7 +406,7 @@ static void api_do_fetch(CURLM *cm) {
         else
           assert(0 && "Unreachable");
 
-        curl_multi_remove_handle(cm, e);
+        curl_multi_remove_handle(api_client.ac_curlm, e);
         curl_easy_cleanup(e);
       } else {
         fprintf(stderr, "%s:%d:Failed to fetch from API: err=%d\n", __FILE__,
@@ -411,7 +414,7 @@ static void api_do_fetch(CURLM *cm) {
         entity_release(entity);
       }
     }
-    if (still_alive) curl_multi_wait(cm, NULL, 0, 100, NULL);
+    if (still_alive) curl_multi_wait(api_client.ac_curlm, NULL, 0, 100, NULL);
 
   } while (still_alive);
 }
@@ -425,7 +428,7 @@ static void *api_fetch(void *v_args) {
     project_t *project = &entity->ent_e.ent_project;
     project_init(project, args->arg_project_ids[i]);
 
-    api_project_queue_fetch(api_cm, entity, args);
+    api_project_queue_fetch(entity, args);
   }
 
   for (;;) {
@@ -436,10 +439,10 @@ static void *api_fetch(void *v_args) {
       entity_t *entity = entity_new(EK_FETCH_PIPELINES);
       pipeline_t *pipeline = &entity->ent_e.ent_pipeline;
       pipeline_init(pipeline, args->arg_project_ids[i]);
-      api_pipelines_queue_fetch(api_cm, entity, args);
+      api_pipelines_queue_fetch(entity, args);
     }
 
-    api_do_fetch(api_cm);
+    api_do_fetch();
 
     struct timespec end = {0};
     CHECK(clock_gettime(CLOCK_MONOTONIC, &end), ==, 0, "%d");

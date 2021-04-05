@@ -24,6 +24,7 @@ int main(int argc, char* argv[]) {
   char* argv0 = argv[0];
 
   args_init(&args);
+  api_init();
 
   struct option options[] = {
       {.name = "token", .has_arg = optional_argument, .val = 't'},
