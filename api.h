@@ -153,6 +153,8 @@ static void api_pipeline_queue_fetch(u64 project_id, u64 pipeline_id,
         sdscatfmt(entity->ent_api_url, "%s/api/v4/projects/%U/pipelines/%U",
                   args->arg_base_url, project_id, pipeline_id);
 
+  entity->ent_api_url = sdsRemoveFreeSpace(entity->ent_api_url);
+
   CURL *eh = curl_easy_init();
   curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, api_curl_write_cb);
   curl_easy_setopt(eh, CURLOPT_URL, entity->ent_api_url);
@@ -342,6 +344,8 @@ static void api_project_queue_fetch(entity_t *entity, args_t *args) {
         sdscatfmt(entity->ent_api_url, "%s/api/v4/projects/%U?simple=true",
                   args->arg_base_url, entity->ent_e.ent_project.pro_id);
 
+  entity->ent_api_url = sdsRemoveFreeSpace(entity->ent_api_url);
+
   CURL *eh = curl_easy_init();
   curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, api_curl_write_cb);
   curl_easy_setopt(eh, CURLOPT_WRITEDATA, entity);
@@ -366,6 +370,8 @@ static void api_pipelines_queue_fetch(entity_t *entity, args_t *args) {
         entity->ent_api_url,
         "%s/api/v4/projects/%U/pipelines?order_by=updated_at",
         args->arg_base_url, entity->ent_e.ent_pipeline.pip_project_id);
+
+  entity->ent_api_url = sdsRemoveFreeSpace(entity->ent_api_url);
 
   CURL *eh = curl_easy_init();
   curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, api_curl_write_cb);
