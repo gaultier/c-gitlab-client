@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common.h"
-#include "deps/sds/sds.h"
 
 typedef struct api_client_t {
   CURLM *ac_curlm;
