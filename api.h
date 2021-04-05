@@ -146,11 +146,11 @@ static void api_pipeline_queue_fetch(u64 project_id, u64 pipeline_id,
   if (args->arg_gitlab_token && sdslen(args->arg_gitlab_token))
     entity->ent_api_url = sdscatfmt(
         entity->ent_api_url,
-        "%s/api/v4/projects/%llu/pipelines/%llu?private_token=%s",
+        "%s/api/v4/projects/%U/pipelines/%U?private_token=%s",
         args->arg_base_url, project_id, pipeline_id, args->arg_gitlab_token);
   else
     entity->ent_api_url =
-        sdscatfmt(entity->ent_api_url, "%s/api/v4/projects/%llu/pipelines/%llu",
+        sdscatfmt(entity->ent_api_url, "%s/api/v4/projects/%U/pipelines/%U",
                   args->arg_base_url, project_id, pipeline_id);
 
   CURL *eh = curl_easy_init();
@@ -334,12 +334,12 @@ static void api_project_queue_fetch(entity_t *entity, args_t *args) {
   if (args->arg_gitlab_token && sdslen(args->arg_gitlab_token))
     entity->ent_api_url =
         sdscatfmt(entity->ent_api_url,
-                  "%s/api/v4/projects/%d?simple=true&private_token=%s",
+                  "%s/api/v4/projects/%U?simple=true&private_token=%s",
                   args->arg_base_url, entity->ent_e.ent_project.pro_id,
                   args->arg_gitlab_token);
   else
     entity->ent_api_url =
-        sdscatfmt(entity->ent_api_url, "%s/api/v4/projects/%d?simple=true",
+        sdscatfmt(entity->ent_api_url, "%s/api/v4/projects/%U?simple=true",
                   args->arg_base_url, entity->ent_e.ent_project.pro_id);
 
   CURL *eh = curl_easy_init();
@@ -357,14 +357,14 @@ static void api_pipelines_queue_fetch(entity_t *entity, args_t *args) {
   if (args->arg_gitlab_token && sdslen(args->arg_gitlab_token))
     entity->ent_api_url =
         sdscatfmt(entity->ent_api_url,
-                  "%s/api/v4/projects/%d/"
+                  "%s/api/v4/projects/%U/"
                   "pipelines?private_token=%s&order_by=updated_at",
                   args->arg_base_url, entity->ent_e.ent_pipeline.pip_project_id,
                   args->arg_gitlab_token);
   else
     entity->ent_api_url = sdscatfmt(
         entity->ent_api_url,
-        "%s/api/v4/projects/%d/pipelines?order_by=updated_at",
+        "%s/api/v4/projects/%U/pipelines?order_by=updated_at",
         args->arg_base_url, entity->ent_e.ent_pipeline.pip_project_id);
 
   CURL *eh = curl_easy_init();
